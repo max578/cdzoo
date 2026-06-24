@@ -1,0 +1,44 @@
+Package: cdzoo
+Title: A Multi-Backend Benchmark Harness and Recommender for Causal
+    Discovery
+Version: 0.0.0.9000
+Authors@R:
+    person("Max", "Moldovan", , "max.moldovan@gmail.com",
+           role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0001-9680-8474"))
+Description: Provides a single typed interface over a curated portfolio of
+    causal-structure-discovery algorithms drawn from several R and Python
+    back-ends, together with a structural-causal-model scenario grid, fair
+    graph-recovery metrics, and an evidence-routed recommender that inspects
+    a data set and suggests a discovery method suited to its characteristics.
+    Every back-end is optional and loaded lazily only when used, so the
+    harness, the scenario grid, the metrics, and the recommender's routing
+    logic all run with no suggested package installed.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Language: en-AU
+Depends:
+    R (>= 4.3)
+Imports:
+    digest,
+    methods,
+    S7,
+    stats,
+    utils
+Suggests:
+    bnlearn,
+    ggplot2,
+    knitr,
+    pcalg,
+    proxymix (>= 0.11.3),
+    reticulate,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder:
+    knitr
+URL: https://github.com/max578/cdzoo
+BugReports: https://github.com/max578/cdzoo/issues
+Config/testthat/edition: 3
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3

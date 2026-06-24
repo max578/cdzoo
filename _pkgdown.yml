@@ -1,0 +1,31 @@
+url: https://max578.github.io/cdzoo
+
+template:
+  bootstrap: 5
+
+reference:
+- title: Discover a graph
+  desc: Run a method, or let the recommender choose one.
+  contents:
+  - cd_discover
+  - cd_auto
+  - cd_diagnose
+- title: Results
+  desc: The discovery-result object and its accessors.
+  contents:
+  - cd_result
+  - cd_edges
+- title: The method registry
+  desc: Inspect and extend the portfolio of methods.
+  contents:
+  - list_methods
+  - register_method
+  - cd_method
+- title: Scenarios, metrics, and benchmarking
+  desc: Generate known-truth data and score recovered graphs.
+  contents:
+  - cd_scenario
+  - cd_scenarios
+  - cd_score
+  - cd_benchmark
+  - cd_field_benchmark

@@ -1,0 +1,182 @@
+---
+title: "A benchmark harness and recommender for causal discovery"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{A benchmark harness and recommender for causal discovery}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7,
+                      fig.height = 4.2, dpi = 120)
+library(cdzoo)
+has_pcalg <- requireNamespace("pcalg", quietly = TRUE)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+has_proxymix <- requireNamespace("proxymix", quietly = TRUE)
+set.seed(1)
+```
+
+`cdzoo` puts a portfolio of causal-discovery algorithms behind one interface. The
+R ecosystem has strong individual packages -- `pcalg`, `bnlearn` -- but no single
+harness that wraps R *and* Python algorithms in one convention with a scenario
+grid and fair metrics. `cdzoo` fills that gap: a registry of methods, a grid of
+structural-causal-model scenarios with known ground truth, graph-recovery
+metrics, and an evidence-routed recommender that suggests a method for a given
+data set and says why.
+
+Every back-end is optional. The registry, the scenarios, the metrics, and the
+recommender's routing logic all run on a base installation; a method is run only
+when its package or Python module is present.
+
+## One interface
+
+`list_methods()` shows the registered methods and which back-ends are installed:
+
+```{r registry}
+methods <- list_methods()
+methods[, c("id", "name", "family", "language", "installed")]
+```
+
+`cd_discover()` runs one method and returns the recovered graph in a single
+adjacency convention (the `pcalg` `amat.cpdag` convention, where `graph[i, j]`
+is one for a directed edge from `i` to `j`, and both `graph[i, j]` and
+`graph[j, i]` are one for an unoriented edge):
+
+```{r discover, eval = has_pcalg}
+sim <- cd_scenario("linear_gaussian", seed = 1)
+res <- cd_discover(sim$data, "pc_pcalg")
+res
+head(cd_edges(res))
+```
+
+## The recommender
+
+Causal discovery has no run-time ground truth, so `cd_auto()` is a recommender,
+not a selector: it inspects the data, routes the problem to a method suited to
+that regime, runs the best installed method on the route, and reports its
+rationale and a confidence label. `cd_diagnose()` shows the transparent
+characteristics it reads:
+
+```{r diagnose}
+cd_diagnose(cd_scenario("linear_laplace", seed = 1)$data)
+```
+
+```{r recommend}
+rec <- cd_auto(cd_scenario("linear_laplace", seed = 1)$data, report = FALSE)
+rec@method
+rec@rationale
+rec@confidence
+```
+
+The routing follows the benchmark evidence below. The signature each test reads
+maps to a method family the benchmark shows is suited to it:
+
+| Data signature | Routed to | Why |
+|---|---|---|
+| Markedly non-Gaussian margins | `icalingam_pcalg` / `directlingam_py` | non-Gaussianity identifies orientation; the LiNGAM family is fast and accurate |
+| A nonlinear-mechanism heuristic | `pc_kci_cl` | a kernel conditional-independence test handles nonlinear dependence |
+| Near-singular covariance | `fci_pcalg` / `rcd_py` | a hint of latent structure; a confounder-robust method is safer |
+| Approximately Gaussian, comparable residual variances | `golem_gcastle` / `dagma_linear_py` | the continuous-optimisation methods exploit equal-variance identifiability |
+| No decisive signature | `golem_gcastle` | the strongest method overall in the benchmark |
+
+When unsure, `mode = "consensus"` runs the top routed methods and returns their
+stability-weighted union with per-edge agreement:
+
+```{r consensus, eval = has_pcalg}
+lap <- cd_scenario("linear_laplace", seed = 1)
+con <- cd_auto(lap$data, mode = "consensus", top_k = 2)
+con@method
+head(cd_edges(con))
+```
+
+## The benchmark evidence
+
+`cd_field_benchmark` is a summary of sixteen established methods run across nine
+structural-causal-model scenarios, each scored against its known DAG. It is the
+evidence behind the recommender's routing. The overall ranking by mean structural
+Hamming distance -- the number of single-edge edits between the estimate and the
+truth, so lower is better:
+
+```{r ranking}
+agg <- aggregate(cbind(shd, skeleton_f1, runtime_s) ~ method_name + family,
+                 data = cd_field_benchmark, FUN = mean)
+agg <- agg[order(agg$shd), ]
+agg$shd <- round(agg$shd, 2)
+agg$skeleton_f1 <- round(agg$skeleton_f1, 3)
+agg$runtime_s <- round(agg$runtime_s, 3)
+agg
+```
+
+The continuous-optimisation family leads on these regimes, the LiNGAM family is
+the strongest accuracy-per-millisecond entrant, and the kernel and search methods
+trail on the linear scenarios while staying available for the nonlinear ones.
+
+```{r fig-accuracy, eval = has_ggplot2, fig.alt = "Mean structural Hamming distance by method, lower is better, coloured by algorithm family."}
+library(ggplot2)
+ord <- agg[order(-agg$shd), "method_name"]
+plot_df <- agg
+plot_df$method_name <- factor(plot_df$method_name, levels = ord)
+ggplot(plot_df, aes(method_name, shd, fill = family)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_viridis_d(option = "D", end = 0.9) +
+  labs(x = NULL, y = "mean structural Hamming distance (lower is better)",
+       fill = "family",
+       title = "Discovery accuracy across nine scenarios") +
+  theme_minimal(base_size = 11)
+```
+
+```{r fig-speed, eval = has_ggplot2, fig.alt = "Mean runtime against mean structural Hamming distance, the speed-accuracy trade-off, on a logarithmic runtime axis."}
+ggplot(agg, aes(runtime_s, shd, colour = family, label = method_name)) +
+  geom_point(size = 2.4) +
+  scale_x_log10() +
+  scale_colour_viridis_d(option = "D", end = 0.9) +
+  labs(x = "mean runtime (seconds, log scale)",
+       y = "mean structural Hamming distance",
+       colour = "family",
+       title = "The speed-accuracy trade-off") +
+  theme_minimal(base_size = 11)
+```
+
+## Score your own runs
+
+`cd_scenario()` realises a scenario at a seed with its true graph attached, and
+`cd_score()` scores a recovered graph against it with skeleton F1, structural
+Hamming distance, and orientation recall:
+
+```{r score, eval = has_pcalg}
+sim <- cd_scenario("linear_bimodal", seed = 2)
+cd_score(cd_discover(sim$data, "icalingam_pcalg"), sim$truth)
+```
+
+`cd_benchmark()` runs the grid for you, isolating each run so a back-end that
+fails on a cell records a status rather than stopping the sweep:
+
+```{r benchmark, eval = has_pcalg}
+cd_benchmark(methods = c("pc_pcalg", "ges_pcalg"),
+             scenarios = c("linear_gaussian", "linear_bimodal"),
+             seeds = 1:2, verbose = FALSE)
+```
+
+## Structure from an evaluable density
+
+The sampling-based methods need a sample. When a density can be evaluated but not
+sampled -- it is given as a mixture or an energy model rather than draws -- the
+conditional-independence (Markov) structure can be read off the mixture in closed
+form instead. Passing a `proxymix` mixture or target to `cd_auto()` takes this
+route:
+
+```{r density, eval = has_proxymix}
+# a three-variable mixture whose precision makes x1 and x3 conditionally
+# independent given x2 -- a chain x1 -- x2 -- x3
+sigma <- solve(matrix(c(1, -0.5, 0, -0.5, 1.25, -0.5, 0, -0.5, 1), 3, 3))
+g <- proxymix::gmm(weights = 1, means = list(c(0, 0, 0)),
+                   covariances = list(sigma))
+res <- cd_auto(g)
+res@rationale
+cd_edges(res)
+```
+
+This is the case no sampling-based method in the registry can serve, and it is
+why the recommender accepts a density as well as a data matrix.

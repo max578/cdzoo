@@ -1,0 +1,35 @@
+# cdzoo 0.0.0.9000
+
+* Initial development version. cdzoo provides a single typed interface over a
+  portfolio of causal-discovery algorithms drawn from several R and Python
+  back-ends, a structural-causal-model scenario grid with known ground truth,
+  fair graph-recovery metrics, and an evidence-routed recommender.
+
+## Features
+
+* `cd_discover()` runs one registered method and returns a `cd_result` carrying
+  the recovered graph in a single `amat.cpdag` adjacency convention, with timing
+  and status.
+* `cd_auto()` inspects a data set's characteristics with `cd_diagnose()`, routes
+  it to a method suited to that regime, runs the best installed method on the
+  route, and reports its rationale and a confidence label. `mode = "consensus"`
+  returns a stability-weighted union of several methods with per-edge agreement.
+  Given an evaluable density rather than a sample -- a `proxymix` mixture or
+  target -- it reads the conditional-independence structure off the mixture in
+  closed form.
+* `list_methods()` and `register_method()` expose and extend the registry of
+  sixteen built-in methods, drawn from `pcalg`, `bnlearn`, and Python back-ends
+  reached through `reticulate`. Each method is gated on its back-end, so the
+  harness, scenarios, metrics, and routing logic run with no suggested package
+  installed.
+* `cd_scenario()` and `cd_scenarios()` generate benchmark data from known DAGs,
+  and `cd_score()` and `cd_benchmark()` score recovered graphs with skeleton F1,
+  structural Hamming distance, and orientation recall.
+* `cd_field_benchmark` ships a summary of the sixteen methods across the nine
+  scenarios, the evidence behind the recommender's routing preferences.
+* `as_orchestra_manifest()` adapts a `cd_result` into a versioned, integrity-hashed
+  `orchestra_manifest` (`inferential_target = "structure"`): the recovered edges
+  ride in `params`, and the method, routing rationale, confidence, and
+  single-method-versus-consensus flag ride in the typed `summary` and `metadata`,
+  so a recovered graph can be passed downstream with its provenance and verified
+  with `verify_manifest()`.
