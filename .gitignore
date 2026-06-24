@@ -7,6 +7,4 @@ docs/
 *.tar.gz
 *.Rcheck/
 inst/doc
-# Federation member-awareness doc: local governance only, not on the public repo.
-CONSTELLATION_MEMBER.md
 .DS_Store
