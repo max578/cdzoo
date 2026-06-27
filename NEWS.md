@@ -1,3 +1,29 @@
+# cdzoo 0.1.0
+
+## New features
+
+* `cd_discover_suffstat()` runs constraint-based discovery directly on a
+  sufficient statistic -- a correlation or covariance matrix and its sample size
+  -- and returns a `cd_result` in the same `amat.cpdag` convention as
+  `cd_discover()`. This is cdzoo's front door for data that arrives already
+  aggregated (a published correlation matrix, a privacy-preserving summary, or
+  pairwise co-occurrence counts) with no row-level observation matrix to pass to
+  `cd_discover()`. `method = "ggm"` returns the partial-correlation
+  (Gaussian-graphical-model) skeleton and needs no back-end; `method = "pc"` and
+  `method = "fci"` add orientation through `pcalg`, with `"fci"` allowing latent
+  confounders.
+* A magnitude-based conditional-independence test (`test = "magnitude"`) prunes
+  an edge when the partial-correlation magnitude falls below `tau`, the correct
+  behaviour at population sample sizes where a significance test
+  (`test = "gauss"`, the default) would call every pair dependent.
+* `cd_correlation_from_counts()` assembles a positive-definite correlation matrix
+  from pairwise binary two-by-two counts (the phi coefficient, base R, or the
+  latent-Gaussian tetrachoric correlation via the optional `psych` package),
+  repairing an indefinite matrix to the nearest positive-definite correlation
+  matrix by eigenvalue clipping. Its output feeds straight into
+  `cd_discover_suffstat()`, so the whole counts -> correlation -> discovery ->
+  `as_orchestra_manifest()` path composes.
+
 # cdzoo 0.0.0.9000
 
 * Initial development version. cdzoo provides a single typed interface over a

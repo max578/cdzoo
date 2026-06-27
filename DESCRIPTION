@@ -1,7 +1,7 @@
 Package: cdzoo
 Title: A Multi-Backend Benchmark Harness and Recommender for Causal
     Discovery
-Version: 0.0.0.9000
+Version: 0.1.0
 Authors@R:
     person("Max", "Moldovan", , "max.moldovan@gmail.com",
            role = c("aut", "cre", "cph"),
@@ -31,6 +31,7 @@ Suggests:
     knitr,
     pcalg,
     proxymix (>= 0.11.3),
+    psych,
     reticulate,
     rmarkdown,
     testthat (>= 3.0.0)
