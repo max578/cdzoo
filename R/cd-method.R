@@ -28,11 +28,17 @@
 #'   `"fast"`, `"medium"`, `"slow"`, or `"very_slow"`.
 #' @param assumptions A single string describing the method's modelling
 #'   assumptions.
+#' @param accepts A single string naming the input the method's `run` consumes,
+#'   `"data"` (the default; a numeric observation matrix) or `"suffstat"` (a
+#'   sufficient statistic, the list `list(C, n)` of a correlation matrix and its
+#'   sample size). A `"suffstat"` method can still be called on a data matrix --
+#'   [cd_discover()] reduces the data to its sufficient statistic first.
 #' @param available A function of no arguments returning a single logical: can
 #'   the method run in the current session?
-#' @param run A function taking a numeric data matrix and returning a list with
-#'   elements `amat` (the estimate in `amat.cpdag` convention, or `NULL`),
-#'   `runtime_s`, and `status`.
+#' @param run A function taking the method's input (a numeric data matrix, or a
+#'   `list(C, n)` sufficient statistic when `accepts = "suffstat"`) and
+#'   returning a list with elements `amat` (the estimate in `amat.cpdag`
+#'   convention, or `NULL`), `runtime_s`, and `status`.
 #'
 #' @returns An S7 object of class `cd_method`.
 #' @family registry
@@ -55,6 +61,7 @@ cd_method <- S7::new_class(
     citation = S7::new_property(S7::class_character, default = ""),
     cost = S7::new_property(S7::class_character, default = "fast"),
     assumptions = S7::new_property(S7::class_character, default = ""),
+    accepts = S7::new_property(S7::class_character, default = "data"),
     available = S7::class_function,
     run = S7::class_function
   ),
@@ -72,6 +79,9 @@ cd_method <- S7::new_class(
     if (!self@cost %in% ok_cost) {
       return(paste0("`cost` must be one of ", paste(ok_cost, collapse = ", ")))
     }
+    if (!self@accepts %in% c("data", "suffstat")) {
+      return("`accepts` must be either \"data\" or \"suffstat\"")
+    }
     NULL
   }
 )
@@ -83,6 +93,9 @@ S7::method(print, cd_method) <- function(x, ...) {
               x@family, x@language))
   cat(sprintf("  output     : %s\n", x@output))
   cat(sprintf("  cost       : %s\n", x@cost))
+  if (!identical(x@accepts, "data")) {
+    cat(sprintf("  accepts    : %s\n", x@accepts))
+  }
   cat(sprintf("  available  : %s\n",
               if (isTRUE(tryCatch(x@available(), error = function(e) FALSE))) {
                 "yes"

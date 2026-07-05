@@ -86,7 +86,8 @@ register_method <- function(method) {
 #'   back-end availability checks is discarded and the probes run again -- use
 #'   it after installing a Python module mid-session.
 #' @returns A data frame with columns `id`, `name`, `family`, `language`,
-#'   `cost`, and `installed`, or a named list of [cd_method] objects.
+#'   `cost`, `accepts` (`"data"` or `"suffstat"`), and `installed`, or a named
+#'   list of [cd_method] objects.
 #' @family registry
 #' @export
 #' @examples
@@ -104,8 +105,8 @@ list_methods <- function(as_data_frame = TRUE, refresh = FALSE) {
   if (length(ids) == 0L) {
     return(data.frame(
       id = character(0), name = character(0), family = character(0),
-      language = character(0), cost = character(0), installed = logical(0),
-      stringsAsFactors = FALSE
+      language = character(0), cost = character(0), accepts = character(0),
+      installed = logical(0), stringsAsFactors = FALSE
     ))
   }
   out <- data.frame(
@@ -114,6 +115,7 @@ list_methods <- function(as_data_frame = TRUE, refresh = FALSE) {
     family = vapply(methods, function(m) m@family, character(1)),
     language = vapply(methods, function(m) m@language, character(1)),
     cost = vapply(methods, function(m) m@cost, character(1)),
+    accepts = vapply(methods, function(m) m@accepts, character(1)),
     installed = vapply(methods, function(m) {
       isTRUE(tryCatch(m@available(), error = function(e) FALSE))
     }, logical(1)),

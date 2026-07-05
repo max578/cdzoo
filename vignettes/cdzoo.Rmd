@@ -159,6 +159,25 @@ cd_benchmark(methods = c("pc_pcalg", "ges_pcalg"),
              seeds = 1:2, verbose = FALSE)
 ```
 
+## Recommending on aggregated data
+
+A great deal of real association data arrives already aggregated -- a published
+correlation matrix, a privacy-preserving summary -- with no row-level matrix.
+Wrapping it as a sufficient statistic lets the recommender route it too. A
+correlation matrix carries only the latent-structure hint, so the
+recommendation says plainly which diagnostics it could not run:
+
+```{r suffstat, eval = has_pcalg}
+sim <- cd_scenario("linear_gaussian", seed = 1)
+ss <- cd_suffstat(stats::cor(sim$data), nrow(sim$data))
+rec <- cd_auto(ss)
+cd_explain(rec)
+```
+
+`cd_explain()` is the auditable companion to a result's compact print: it lays
+out the method, the rationale and confidence, the alternatives, and the
+thresholds the route was decided on.
+
 ## Structure from an evaluable density
 
 The sampling-based methods need a sample. When a density can be evaluated but not

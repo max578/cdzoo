@@ -7,5 +7,6 @@
 .onLoad <- function(libname, pkgname) {
   S7::methods_register()
   .register_builtin_methods()
+  .register_suffstat_methods()
   invisible(NULL)
 }

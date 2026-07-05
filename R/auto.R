@@ -196,6 +196,128 @@
   )
 }
 
+#' Condition number of a correlation matrix
+#'
+#' @param C A correlation matrix.
+#' @returns The ratio of the largest to smallest positive eigenvalue, or `NA`.
+#' @noRd
+#' @keywords internal
+.corr_condition_number <- function(C) {
+  ev <- eigen(C, symmetric = TRUE, only.values = TRUE)$values
+  ev <- ev[ev > 0]
+  if (length(ev) == 0L) NA_real_ else max(ev) / min(ev)
+}
+
+#' Route a sufficient-statistic problem to a method
+#'
+#' A sufficient statistic carries only the second-moment structure, so of the
+#' recommender's data characteristics only the latent-structure hint (the
+#' condition number of the correlation matrix) is computable; the
+#' non-Gaussianity, nonlinearity, and equal-variance tests need row-level data
+#' and are unavailable. The route reflects that: a near-singular correlation
+#' routes to a confounder-robust method, otherwise the constraint-based default,
+#' and the rationale states plainly which diagnostics could not be run.
+#'
+#' @param C The correlation matrix.
+#' @param available The available method ids.
+#' @returns A list with `method`, `ideal`, `rationale`, `confidence`, and
+#'   `alternatives`, in the shape [.route_sampled()] returns.
+#' @noRd
+#' @keywords internal
+.route_suffstat <- function(C, available) {
+  cn <- .corr_condition_number(C)
+  caveat <- paste0(
+    " (from a sufficient statistic only the latent-structure hint is ",
+    "available; the non-Gaussianity, nonlinearity, and equal-variance tests ",
+    "need row-level data)")
+  order <- if (!is.na(cn) && cn > .ROUTING_THRESHOLDS$condition_number) {
+    rationale <- sprintf(paste0(
+      "a near-singular correlation (condition number %.0f) hints at latent ",
+      "structure; a confounder-robust method (FCI) is the safer choice"), cn)
+    confidence <- "low"
+    c("fci_suffstat", "pc_suffstat", "ggm_suffstat")
+  } else {
+    rationale <- paste0(
+      "no latent-structure hint in the correlation; a constraint-based method ",
+      "(PC) recovers the structure the statistic supports")
+    confidence <- "moderate"
+    c("pc_suffstat", "ggm_suffstat", "fci_suffstat")
+  }
+  method <- .prefer(order, available)
+  if (is.na(method)) {
+    # ggm needs no back-end, so this only happens with an empty registry
+    method <- .prefer("ggm_suffstat", available)
+  }
+  ideal <- order[1L]
+  if (!is.na(method) && !identical(method, ideal)) {
+    rationale <- paste0(
+      rationale,
+      sprintf(". The preferred method (%s) is not installed; using %s",
+              .method_label(ideal), .method_label(method)))
+  }
+  list(method = method, ideal = ideal, rationale = paste0(rationale, caveat),
+       confidence = confidence, alternatives = order)
+}
+
+#' Recommend and run a method for a sufficient-statistic input
+#'
+#' @param ss A [cd_suffstat()] object.
+#' @param mode `"route"` or `"consensus"`.
+#' @param report Whether to run the recommended method.
+#' @param top_k The number of methods to combine in consensus mode.
+#' @returns A [cd_result].
+#' @noRd
+#' @keywords internal
+.cd_auto_suffstat <- function(ss, mode, report, top_k) {
+  suff_ids <- c("pc_suffstat", "fci_suffstat", "ggm_suffstat")
+  available <- intersect(.available_method_ids(), suff_ids)
+  route <- .route_suffstat(ss$C, available)
+  alt <- vapply(route$alternatives, .method_label, character(1))
+  prov <- list(source = "suffstat", n = ss$n, p = ncol(ss$C),
+               ideal = route$ideal, mode = mode)
+
+  # method id -> cd_discover_suffstat's method argument
+  as_arg <- function(id) sub("_suffstat$", "", id)
+
+  if (!report || is.na(route$method)) {
+    return(cd_result(
+      method = if (is.na(route$ideal)) NA_character_ else route$ideal,
+      method_name = .method_label(route$ideal),
+      family = "constraint",
+      status = if (is.na(route$method)) "no back-end installed" else
+        "recommendation only (report = FALSE)",
+      rationale = route$rationale, confidence = route$confidence,
+      alternatives = as.list(alt), provenance = prov))
+  }
+
+  if (identical(mode, "consensus")) {
+    ids <- utils::head(route$alternatives[route$alternatives %in% available],
+                       top_k)
+    runs <- lapply(ids, function(id) {
+      cd_discover_suffstat(ss$C, ss$n, method = as_arg(id))
+    })
+    comb <- .combine_consensus(runs, colnames(ss$C))
+    n_ok <- sum(vapply(runs, function(r) r@status == "ok", logical(1)))
+    return(cd_result(
+      graph = comb$amat, method = "consensus",
+      method_name = sprintf("Consensus of %d methods", length(ids)),
+      family = "constraint", language = "R", output = "cpdag", status = "ok",
+      rationale = sprintf("%s; consensus of %s", route$rationale,
+                          paste(vapply(ids, .method_label, character(1)),
+                                collapse = ", ")),
+      confidence = route$confidence, alternatives = as.list(alt),
+      provenance = c(prov, list(agreement = comb$agreement, n_ok = n_ok,
+                                runs = runs))))
+  }
+
+  res <- cd_discover_suffstat(ss$C, ss$n, method = as_arg(route$method))
+  res@rationale <- route$rationale
+  res@confidence <- route$confidence
+  res@alternatives <- as.list(alt)
+  res@provenance <- c(res@provenance, prov)
+  res
+}
+
 #' Combine several results into a stability-weighted consensus graph
 #'
 #' @param results A list of [cd_result] objects on the same variables.
@@ -291,8 +413,15 @@
 #' closed form, the route for the case where a density can be evaluated but not
 #' sampled.
 #'
-#' @param data A numeric matrix or data frame of observations by variables, or
-#'   an evaluable-density object (a proxymix `gmm` / `gmm_fit` / `gmm_target`).
+#' When `data` is a sufficient statistic ([cd_suffstat()], a correlation matrix
+#' and its sample size), the recommender routes among the sufficient-statistic
+#' methods. A correlation matrix carries only the latent-structure hint, so the
+#' rationale states plainly that the non-Gaussianity, nonlinearity, and
+#' equal-variance tests could not be run.
+#'
+#' @param data A numeric matrix or data frame of observations by variables, an
+#'   evaluable-density object (a proxymix `gmm` / `gmm_fit` / `gmm_target`), or
+#'   a sufficient statistic ([cd_suffstat()]).
 #' @param mode `"route"` (run the single recommended method) or `"consensus"`
 #'   (run the top `top_k` installed methods on the route and return their
 #'   stability-weighted union).
@@ -327,6 +456,13 @@ cd_auto <- function(data, mode = c("route", "consensus"), report = TRUE,
   # closed form, the case the sampling methods cannot serve.
   if (.is_density_input(data)) {
     return(.route_density(data, threshold, density_components))
+  }
+
+  # Sufficient-statistic route ---------------------------------------------
+  # Aggregated data (a cd_suffstat) routes among the sufficient-statistic
+  # methods on the one characteristic a correlation matrix carries.
+  if (inherits(data, "cd_suffstat")) {
+    return(.cd_auto_suffstat(data, mode, report, top_k))
   }
 
   # Route -----------------------------------------------------------------

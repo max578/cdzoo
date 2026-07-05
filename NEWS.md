@@ -1,3 +1,25 @@
+# cdzoo 0.2.0
+
+## New features
+
+* A sufficient statistic is now a first-class discovery input. `cd_method`
+  gains an `accepts` field (`"data"` or `"suffstat"`), and the constraint
+  methods `pc_suffstat`, `fci_suffstat`, and `ggm_suffstat` are registered so
+  they appear in `list_methods()` (which gains an `accepts` column) and are
+  routable by `cd_auto()`. A `"suffstat"` method can also be run on a data
+  matrix through `cd_discover()`, which reduces the data to its sufficient
+  statistic first.
+* `cd_auto()` accepts a sufficient statistic, `cd_suffstat(C, n)`, and routes
+  it among the sufficient-statistic methods. A correlation matrix carries only
+  the latent-structure hint, so the recommendation states plainly that the
+  non-Gaussianity, nonlinearity, and equal-variance tests could not be run --
+  honest about what an aggregated input does and does not support. `report`,
+  `mode = "consensus"`, and manifest emission all work on this input.
+* `cd_explain()` prints a readable account of a recommendation -- the method
+  and status, the routing rationale and confidence, the alternatives
+  considered, the thresholds that decided the route, and (for a consensus) the
+  per-edge agreement -- the auditable companion to the compact `print()`.
+
 # cdzoo 0.1.1
 
 ## Breaking changes

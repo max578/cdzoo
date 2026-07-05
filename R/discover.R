@@ -54,6 +54,25 @@
   amat
 }
 
+#' The input a method's `run` expects, derived from a data matrix
+#'
+#' A `"data"` method receives the matrix unchanged; a `"suffstat"` method
+#' receives the matrix reduced to its sufficient statistic `list(C, n)`, so any
+#' registered method can be run on a data matrix.
+#'
+#' @param method A [cd_method].
+#' @param data A validated numeric data matrix.
+#' @returns The data matrix, or a `list(C, n)` sufficient statistic.
+#' @noRd
+#' @keywords internal
+.method_input <- function(method, data) {
+  if (identical(method@accepts, "suffstat")) {
+    list(C = stats::cor(data), n = nrow(data))
+  } else {
+    data
+  }
+}
+
 #' Assemble a result from a back-end run
 #'
 #' @param res The list returned by a [cd_method]'s `run` adapter.
@@ -84,6 +103,11 @@
 #' recovered graph as a [cd_result]. Use [list_methods()] to see the registered
 #' methods and which back-ends are installed, and [cd_auto()] to let the
 #' recommender choose a method for you.
+#'
+#' A method that consumes a sufficient statistic (its `accepts` is `"suffstat"`,
+#' such as `"pc_suffstat"`) can still be run here on a data matrix: the data is
+#' reduced to its correlation matrix and sample size first. To run such a method
+#' on an already-aggregated statistic instead, use [cd_discover_suffstat()].
 #'
 #' @param data A numeric matrix or data frame of observations (rows) by
 #'   variables (columns).
@@ -119,7 +143,7 @@ cd_discover <- function(data, method) {
       m@id, m@language, m@name
     ))
   }
-  res <- m@run(data)
+  res <- m@run(.method_input(m, data))
   .assemble_result(res, m, data)
 }
 

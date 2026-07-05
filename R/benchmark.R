@@ -55,7 +55,12 @@ cd_benchmark <- function(methods = NULL, scenarios = NULL, seeds = 1:4,
   # not installed, or over the cost limit -- is named, never silently vanished.
   requested <- !is.null(methods)
   if (!requested) {
-    methods <- available
+    # the default grid runs the data methods; the sufficient-statistic methods
+    # reduce to the same computation as their data-method twin on a raw matrix,
+    # so they are excluded here to keep the grid free of near-duplicates (ask
+    # for them by id to include them).
+    methods <- Filter(
+      function(id) !identical(.get_method(id)@accepts, "suffstat"), available)
   } else {
     unknown <- Filter(function(id) is.null(.get_method(id)), methods)
     if (length(unknown) > 0L) {
@@ -103,7 +108,7 @@ cd_benchmark <- function(methods = NULL, scenarios = NULL, seeds = 1:4,
       sim <- cd_scenario(sc, seed = seed)
       for (id in methods) {
         m <- .get_method(id)
-        run <- tryCatch(m@run(sim$data),
+        run <- tryCatch(m@run(.method_input(m, sim$data)),
                         error = function(e) {
                           list(amat = NULL, runtime_s = NA_real_,
                                status = paste0("error: ", conditionMessage(e)))

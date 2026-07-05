@@ -339,3 +339,98 @@ cd_correlation_from_counts <- function(pairs,
     n_pairs = nrow(pairs), n_vars = p, type = type)
   c_mat
 }
+
+# ---------------------------------------------------------------------------
+# A sufficient statistic as a first-class input
+# ---------------------------------------------------------------------------
+
+#' A sufficient statistic as a discovery input
+#'
+#' Wraps a correlation (or covariance) matrix and its sample size as a tagged
+#' object that [cd_auto()] accepts in place of a data matrix, so the recommender
+#' can route and run on data that arrives already aggregated. The matrix is
+#' validated and standardised exactly as [cd_discover_suffstat()] does.
+#'
+#' @param C A square correlation or covariance matrix; covariance input is
+#'   standardised. Variable names are taken from its dimnames.
+#' @param n A single positive number: the sample size the statistic summarises.
+#' @returns An object of class `cd_suffstat`: a list with the validated
+#'   correlation matrix `C` and the sample size `n`.
+#' @seealso [cd_auto()], [cd_discover_suffstat()]
+#' @export
+#' @examples
+#' sim <- cd_scenario("linear_gaussian", seed = 1)
+#' ss <- cd_suffstat(stats::cor(sim$data), nrow(sim$data))
+#' ss$n
+cd_suffstat <- function(C, n) {
+  C <- .cd_validate_corr(C)
+  if (length(n) != 1L || !is.finite(n) || n < 1) {
+    stop(call. = FALSE, "`n` must be a single positive number (sample size).")
+  }
+  structure(list(C = C, n = as.double(n)), class = "cd_suffstat")
+}
+
+#' Run one registered suffstat method on a sufficient statistic
+#'
+#' Shared `run` body for the registered `*_suffstat` methods. Delegates to the
+#' same helpers as [cd_discover_suffstat()], so there is one implementation of
+#' each algorithm.
+#'
+#' @param method One of `"pc"`, `"fci"`, or `"ggm"`.
+#' @param suff A `list(C, n)` sufficient statistic, optionally carrying `test`,
+#'   `alpha`, and `tau`.
+#' @returns A `.timed()` result list (`amat`, `runtime_s`, `status`).
+#' @noRd
+#' @keywords internal
+.run_suffstat_method <- function(method, suff) {
+  test <- suff$test %||% "gauss"
+  alpha <- suff$alpha %||% 0.05
+  tau <- suff$tau %||% 0.05
+  labels <- colnames(suff$C)
+  .timed(function() {
+    if (method == "ggm") {
+      .ggm_skeleton(suff$C, tau)
+    } else {
+      .suffstat_constraint(method, suff$C, suff$n, test, alpha, tau, labels)
+    }
+  })
+}
+
+#' Register the built-in sufficient-statistic methods
+#'
+#' Called once from `.onLoad`, after the data methods. These methods declare
+#' `accepts = "suffstat"`, so [cd_discover()] reduces a data matrix to its
+#' sufficient statistic before running them and [cd_auto()] routes a
+#' [cd_suffstat()] input among them.
+#'
+#' @returns `NULL`, invisibly.
+#' @noRd
+#' @keywords internal
+.register_suffstat_methods <- function() {
+  register_method(cd_method(
+    id = "ggm_suffstat",
+    name = "Gaussian graphical model (partial correlation)",
+    family = "constraint", language = "R", output = "cpdag",
+    citation = "Lauritzen (1996)", cost = "fast",
+    assumptions = "Gaussian; partial-correlation (precision) skeleton",
+    accepts = "suffstat", available = function() TRUE,
+    run = function(suff) .run_suffstat_method("ggm", suff)
+  ))
+  register_method(cd_method(
+    id = "pc_suffstat", name = "PC from sufficient statistic",
+    family = "constraint", language = "R", output = "cpdag",
+    citation = "Spirtes, Glymour & Scheines (2000)", cost = "fast",
+    assumptions = "causal sufficiency; linear-Gaussian CI test on (C, n)",
+    accepts = "suffstat", available = .has_pkg("pcalg"),
+    run = function(suff) .run_suffstat_method("pc", suff)
+  ))
+  register_method(cd_method(
+    id = "fci_suffstat", name = "FCI from sufficient statistic",
+    family = "constraint", language = "R", output = "pag",
+    citation = "Spirtes, Meek & Richardson (1995)", cost = "fast",
+    assumptions = "allows latent confounders; CI test on (C, n)",
+    accepts = "suffstat", available = .has_pkg("pcalg"),
+    run = function(suff) .run_suffstat_method("fci", suff)
+  ))
+  invisible(NULL)
+}

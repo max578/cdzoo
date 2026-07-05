@@ -14,8 +14,9 @@ cd_auto(
 )
 }
 \arguments{
-\item{data}{A numeric matrix or data frame of observations by variables, or
-an evaluable-density object (a proxymix \code{gmm} / \code{gmm_fit} / \code{gmm_target}).}
+\item{data}{A numeric matrix or data frame of observations by variables, an
+evaluable-density object (a proxymix \code{gmm} / \code{gmm_fit} / \code{gmm_target}), or
+a sufficient statistic (\code{\link[=cd_suffstat]{cd_suffstat()}}).}
 
 \item{mode}{\code{"route"} (run the single recommended method) or \code{"consensus"}
 (run the top \code{top_k} installed methods on the route and return their
@@ -65,6 +66,12 @@ When \code{data} is an evaluable density rather than a sample -- a proxymix \cod
 the conditional-independence (Markov) structure is read off the mixture in
 closed form, the route for the case where a density can be evaluated but not
 sampled.
+
+When \code{data} is a sufficient statistic (\code{\link[=cd_suffstat]{cd_suffstat()}}, a correlation matrix
+and its sample size), the recommender routes among the sufficient-statistic
+methods. A correlation matrix carries only the latent-structure hint, so the
+rationale states plainly that the non-Gaussianity, nonlinearity, and
+equal-variance tests could not be run.
 }
 \examples{
 if (requireNamespace("pcalg", quietly = TRUE)) {

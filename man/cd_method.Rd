@@ -13,6 +13,7 @@ cd_method(
   citation = "",
   cost = "fast",
   assumptions = "",
+  accepts = "data",
   available = function() NULL,
   run = function() NULL
 )
@@ -40,12 +41,19 @@ cd_method(
 \item{assumptions}{A single string describing the method's modelling
 assumptions.}
 
+\item{accepts}{A single string naming the input the method's \code{run} consumes,
+\code{"data"} (the default; a numeric observation matrix) or \code{"suffstat"} (a
+sufficient statistic, the list \code{list(C, n)} of a correlation matrix and its
+sample size). A \code{"suffstat"} method can still be called on a data matrix --
+\code{\link[=cd_discover]{cd_discover()}} reduces the data to its sufficient statistic first.}
+
 \item{available}{A function of no arguments returning a single logical: can
 the method run in the current session?}
 
-\item{run}{A function taking a numeric data matrix and returning a list with
-elements \code{amat} (the estimate in \code{amat.cpdag} convention, or \code{NULL}),
-\code{runtime_s}, and \code{status}.}
+\item{run}{A function taking the method's input (a numeric data matrix, or a
+\code{list(C, n)} sufficient statistic when \code{accepts = "suffstat"}) and
+returning a list with elements \code{amat} (the estimate in \code{amat.cpdag}
+convention, or \code{NULL}), \code{runtime_s}, and \code{status}.}
 }
 \value{
 An S7 object of class \code{cd_method}.

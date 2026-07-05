@@ -24,6 +24,12 @@ recovered graph as a \link{cd_result}. Use \code{\link[=list_methods]{list_metho
 methods and which back-ends are installed, and \code{\link[=cd_auto]{cd_auto()}} to let the
 recommender choose a method for you.
 }
+\details{
+A method that consumes a sufficient statistic (its \code{accepts} is \code{"suffstat"},
+such as \code{"pc_suffstat"}) can still be run here on a data matrix: the data is
+reduced to its correlation matrix and sample size first. To run such a method
+on an already-aggregated statistic instead, use \code{\link[=cd_discover_suffstat]{cd_discover_suffstat()}}.
+}
 \examples{
 if (requireNamespace("pcalg", quietly = TRUE)) {
   sim <- cd_scenario("linear_gaussian", seed = 1)

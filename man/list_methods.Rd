@@ -16,7 +16,8 @@ it after installing a Python module mid-session.}
 }
 \value{
 A data frame with columns \code{id}, \code{name}, \code{family}, \code{language},
-\code{cost}, and \code{installed}, or a named list of \link{cd_method} objects.
+\code{cost}, \code{accepts} (\code{"data"} or \code{"suffstat"}), and \code{installed}, or a named
+list of \link{cd_method} objects.
 }
 \description{
 Returns every registered method as a \link{cd_method} list, or -- with

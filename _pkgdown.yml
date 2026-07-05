@@ -10,11 +10,13 @@ reference:
   - cd_discover
   - cd_auto
   - cd_diagnose
+  - cd_explain
 - title: Discovery from a sufficient statistic
   desc: Run discovery on an aggregated correlation matrix rather than row-level data.
   contents:
   - cd_discover_suffstat
   - cd_correlation_from_counts
+  - cd_suffstat
 - title: Results
   desc: The discovery-result object and its accessors.
   contents:

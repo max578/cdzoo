@@ -1,7 +1,7 @@
 Package: cdzoo
 Title: A Multi-Backend Benchmark Harness and Recommender for Causal
     Discovery
-Version: 0.1.1
+Version: 0.2.0
 Authors@R:
     person("Max", "Moldovan", , "max.moldovan@gmail.com",
            role = c("aut", "cre", "cph"),
