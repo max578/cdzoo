@@ -1,0 +1,95 @@
+---
+title: "Discovery from sufficient statistics"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Discovery from sufficient statistics}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(cdzoo)
+has_pcalg <- requireNamespace("pcalg", quietly = TRUE)
+set.seed(1)
+```
+
+Most discovery tools need a row-level data matrix. A great deal of real
+association data, though, arrives already aggregated -- a published correlation
+matrix, a privacy-preserving summary, or pairwise co-occurrence counts -- with
+no rows to hand. `cdzoo` treats a sufficient statistic as a first-class input:
+you can discover from it directly, or let the recommender route it.
+
+## Counts to a correlation matrix
+
+Co-occurrence data is often published as pairwise two-by-two tables: for each
+pair of binary variables, the counts of both present, one present, or neither.
+`cd_correlation_from_counts()` assembles a positive-definite correlation matrix
+from those counts, repairing it to the nearest valid correlation matrix when the
+pairwise assembly is not itself positive-definite:
+
+```{r counts}
+pairs <- data.frame(
+  var_i = c("a", "a", "b"),
+  var_j = c("b", "c", "c"),
+  n11 = c(900, 110, 105),
+  n10 = c(100, 890, 895),
+  n01 = c(100, 90, 95),
+  n00 = c(8900, 8910, 8905))
+C <- cd_correlation_from_counts(pairs, type = "phi")
+round(C, 2)
+attr(C, "repair")[c("eig_min_raw", "eig_min", "distortion")]
+```
+
+## Discovery from the statistic
+
+`cd_discover_suffstat()` runs constraint-based discovery directly on the matrix
+and its sample size. `method = "ggm"` needs no back-end and returns the
+partial-correlation skeleton; `"pc"` and `"fci"` add orientation through
+`pcalg`:
+
+```{r discover}
+res <- cd_discover_suffstat(C, n = 10000, method = "ggm")
+cd_edges(res)
+```
+
+At population sample sizes a significance-based test rejects independence for
+almost every pair, so the graph saturates. The magnitude test prunes by effect
+size instead, which is the right behaviour when `n` is very large:
+
+```{r magnitude, eval = has_pcalg}
+sim <- cd_scenario("linear_gaussian", seed = 1)
+big <- stats::cor(sim$data)
+gauss <- cd_discover_suffstat(big, n = 5e6, method = "pc", test = "gauss")
+magnitude <- cd_discover_suffstat(big, n = 5e6, method = "pc", test = "magnitude")
+c(gauss = nrow(cd_edges(gauss)), magnitude = nrow(cd_edges(magnitude)))
+```
+
+## Letting the recommender route it
+
+Wrapping the statistic as `cd_suffstat()` lets `cd_auto()` recommend a method.
+A correlation matrix carries only the latent-structure hint, so the
+recommendation states plainly which diagnostics an aggregated input cannot
+support:
+
+```{r auto, eval = has_pcalg}
+ss <- cd_suffstat(big, n = nrow(sim$data))
+rec <- cd_auto(ss)
+cd_explain(rec)
+```
+
+## Passing the result on
+
+A recovered graph carries its provenance into the federation manifest exactly as
+a data-driven result does, so an aggregated-input discovery is verifiable
+downstream:
+
+```{r manifest, eval = has_pcalg}
+m <- as_orchestra_manifest(rec, seed = 1L)
+m@inferential_target
+verify_manifest(m)$ok
+```
+
+The whole path -- counts to a correlation matrix, discovery from the statistic,
+a routed recommendation, and a verifiable manifest -- runs without ever holding
+a row-level data set.

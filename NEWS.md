@@ -19,6 +19,19 @@
   and status, the routing rationale and confidence, the alternatives
   considered, the thresholds that decided the route, and (for a consensus) the
   per-edge agreement -- the auditable companion to the compact `print()`.
+* `cd_auto(mode = "consensus")` now draws a family-diverse panel of methods
+  rather than several near-identical members of one family, for a
+  better-grounded agreement signal, and `cd_edges(res, agreement = TRUE)`
+  reports the per-edge agreement of a consensus result.
+* `cd_benchmark(mc.cores = )` runs the scenario grid across cores. Each cell is
+  deterministic given its scenario seed and independent of the others, so the
+  result is identical for any core count.
+* A `plot()` method for `cd_result` draws the recovered graph (variables on a
+  circle, arrows for directed edges) using base graphics only -- no plotting
+  back-end required.
+* A second vignette, *Discovery from sufficient statistics*, works an example
+  from co-occurrence counts through a correlation matrix, discovery, a routed
+  recommendation, and a verifiable manifest.
 
 # cdzoo 0.1.1
 

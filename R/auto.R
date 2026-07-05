@@ -40,6 +40,46 @@
   if (length(hit) == 0L) NA_character_ else hit[1L]
 }
 
+#' A family-diverse top-k selection for consensus
+#'
+#' Picks up to `k` methods that span distinct algorithm families rather than
+#' running `k` variations of one family: it walks the preference order (the
+#' route's list first, then the remaining available methods), taking a method
+#' only when its family is not yet represented, then -- if fewer than `k`
+#' distinct families are available -- fills the remaining slots with the next
+#' preferred methods. A diverse panel gives a better-grounded stability signal
+#' than several near-identical methods agreeing with each other.
+#'
+#' @param primary A character vector of method ids in preference order.
+#' @param available A character vector of available method ids to draw from.
+#' @param k The number of methods to select.
+#' @returns A character vector of up to `k` method ids.
+#' @noRd
+#' @keywords internal
+.diverse_topk <- function(primary, available, k) {
+  pool <- c(primary[primary %in% available], setdiff(available, primary))
+  if (length(pool) == 0L) {
+    return(character(0))
+  }
+  fams <- vapply(pool, function(id) .get_method(id)@family, character(1))
+  chosen <- character(0)
+  seen <- character(0)
+  for (i in seq_along(pool)) {
+    if (length(chosen) >= k) {
+      break
+    }
+    if (!fams[i] %in% seen) {
+      chosen <- c(chosen, pool[i])
+      seen <- c(seen, fams[i])
+    }
+  }
+  if (length(chosen) < k) {
+    fill <- utils::head(setdiff(pool, chosen), k - length(chosen))
+    chosen <- c(chosen, fill)
+  }
+  chosen
+}
+
 #' Route a sampled-data problem to a method
 #'
 #' @param f The data characteristics from `.cd_features()`.
@@ -221,7 +261,7 @@
 #' @param C The correlation matrix.
 #' @param available The available method ids.
 #' @returns A list with `method`, `ideal`, `rationale`, `confidence`, and
-#'   `alternatives`, in the shape [.route_sampled()] returns.
+#'   `alternatives`, in the shape `.route_sampled()` returns.
 #' @noRd
 #' @keywords internal
 .route_suffstat <- function(C, available) {
@@ -506,17 +546,20 @@ cd_auto <- function(data, mode = c("route", "consensus"), report = TRUE,
   }
 
   # Consensus mode --------------------------------------------------------
-  # Run the top installed methods on the route and combine them; the member
-  # results and the per-edge agreement ride in the provenance.
+  # Run a family-diverse panel on the route and combine them; the member
+  # results and the per-edge agreement ride in the provenance. Diversity draws
+  # across data-method families (a suffstat method would only reduce to its
+  # data twin), so the agreement signal is not several near-identical methods.
   if (identical(mode, "consensus")) {
-    ids <- utils::head(route$alternatives[route$alternatives %in% available],
-                       top_k)
+    data_available <- Filter(
+      function(id) identical(.get_method(id)@accepts, "data"), available)
+    ids <- .diverse_topk(route$alternatives, data_available, top_k)
     if (length(ids) == 0L) {
       ids <- route$method
     }
     runs <- lapply(ids, function(id) {
       m <- .get_method(id)
-      .assemble_result(m@run(data), m, data)
+      .assemble_result(m@run(.method_input(m, data)), m, data)
     })
     comb <- .combine_consensus(runs, colnames(data))
     n_ok <- sum(vapply(runs, function(r) r@status == "ok", logical(1)))

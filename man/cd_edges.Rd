@@ -4,16 +4,20 @@
 \alias{cd_edges}
 \title{Edge list of a discovery result}
 \usage{
-cd_edges(x)
+cd_edges(x, agreement = FALSE)
 }
 \arguments{
 \item{x}{A \link{cd_result} or a square adjacency matrix in \code{amat.cpdag}
 convention.}
+
+\item{agreement}{A single logical. When \code{TRUE} and \code{x} is a consensus
+\link{cd_result} carrying per-edge agreement (from \code{\link[=cd_auto]{cd_auto()}} with
+\code{mode = "consensus"}), an \code{agreement} column reports the share of the
+combined methods that found each edge. \code{NA} where no agreement is recorded.}
 }
 \value{
 A data frame with columns \code{from}, \code{to}, and \code{type} (\code{"-->"} for a
-directed edge, \code{"---"} for an undirected one). Zero rows when the graph is
-empty.
+directed edge, \code{"---"} for an undirected one), and -- when \code{agreement = TRUE} -- an \code{agreement} column. Zero rows when the graph is empty.
 }
 \description{
 Returns the edges of a \link{cd_result} (or a bare adjacency matrix) as a data

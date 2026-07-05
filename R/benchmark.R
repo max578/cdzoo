@@ -25,6 +25,11 @@
 #' @param cost_limit A single string: the costliest method tier to include, one
 #'   of `"fast"`, `"medium"`, `"slow"`, or `"very_slow"`.
 #' @param verbose A single logical: report progress per scenario.
+#' @param mc.cores A single positive integer: the number of cores to run the
+#'   grid on. The default `1L` runs serially. Each cell is deterministic given
+#'   its scenario seed and independent of the others, so the result is identical
+#'   for any core count; parallel execution uses [parallel::mclapply()] (which
+#'   falls back to serial on Windows).
 #' @returns A data frame with one row per (scenario, method, seed) run, with
 #'   columns `scenario`, `family`, `method`, `method_family`, `language`,
 #'   `seed`, `status`, `skeleton_f1`, `shd`, `orient_recall`, and `runtime_s`.
@@ -41,9 +46,12 @@
 #' }
 cd_benchmark <- function(methods = NULL, scenarios = NULL, seeds = 1:4,
                          cost_limit = c("medium", "fast", "slow", "very_slow"),
-                         verbose = TRUE) {
+                         verbose = TRUE, mc.cores = 1L) {
   cost_limit <- match.arg(cost_limit)
   limit <- .COST_RANK[[cost_limit]]
+  if (length(mc.cores) != 1L || !is.finite(mc.cores) || mc.cores < 1) {
+    stop(call. = FALSE, "`mc.cores` must be a single positive integer.")
+  }
 
   # Resolve the method and scenario sets -----------------------------------
   if (is.null(scenarios)) {
@@ -92,45 +100,63 @@ cd_benchmark <- function(methods = NULL, scenarios = NULL, seeds = 1:4,
   methods <- setdiff(methods, capped)
 
   # Run and score the grid -------------------------------------------------
-  # Every (scenario, seed, method) cell runs in isolation, so a back-end that
-  # errors on a cell records a failed status rather than stopping the sweep.
-  rows <- vector("list", 0L)
+  # Every (scenario, seed, method) cell runs in isolation and is deterministic
+  # given its scenario seed, so a back-end that errors on a cell records a
+  # failed status rather than stopping the sweep, and the cells may run in any
+  # order (serially, or across cores) with an identical result.
   if (length(methods) == 0L) {
     return(.empty_benchmark())
   }
-
-  for (sc in scenarios) {
-    if (verbose) {
+  grid <- expand.grid(method = methods, seed = seeds, scenario = scenarios,
+                      KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+  if (verbose) {
+    for (sc in scenarios) {
       message(sprintf("scenario %s (%d method(s), %d seed(s))",
                       sc, length(methods), length(seeds)))
     }
-    for (seed in seeds) {
-      sim <- cd_scenario(sc, seed = seed)
-      for (id in methods) {
-        m <- .get_method(id)
-        run <- tryCatch(m@run(.method_input(m, sim$data)),
-                        error = function(e) {
-                          list(amat = NULL, runtime_s = NA_real_,
-                               status = paste0("error: ", conditionMessage(e)))
-                        })
-        sc_row <- if (identical(run$status, "ok")) {
-          cd_score(.coerce_amat(run$amat, colnames(sim$data)), sim$truth)
-        } else {
-          data.frame(skeleton_f1 = NA_real_, skeleton_precision = NA_real_,
-                     skeleton_recall = NA_real_, shd = NA_real_,
-                     orient_recall = NA_real_)
-        }
-        rows[[length(rows) + 1L]] <- data.frame(
-          scenario = sc, family = sim$family, method = id,
-          method_family = m@family, language = m@language, seed = seed,
-          status = run$status, skeleton_f1 = sc_row$skeleton_f1,
-          shd = sc_row$shd, orient_recall = sc_row$orient_recall,
-          runtime_s = as.double(run$runtime_s), stringsAsFactors = FALSE
-        )
-      }
-    }
+  }
+  cell <- function(k) {
+    .benchmark_cell(grid$scenario[k], grid$seed[k], grid$method[k])
+  }
+  rows <- if (mc.cores > 1L) {
+    parallel::mclapply(seq_len(nrow(grid)), cell,
+                       mc.cores = as.integer(mc.cores))
+  } else {
+    lapply(seq_len(nrow(grid)), cell)
   }
   do.call(rbind, rows)
+}
+
+#' Run and score one benchmark cell
+#'
+#' @param sc A scenario name.
+#' @param seed A single seed.
+#' @param id A method id.
+#' @returns A one-row data frame in the benchmark schema.
+#' @noRd
+#' @keywords internal
+.benchmark_cell <- function(sc, seed, id) {
+  sim <- cd_scenario(sc, seed = seed)
+  m <- .get_method(id)
+  run <- tryCatch(m@run(.method_input(m, sim$data)),
+                  error = function(e) {
+                    list(amat = NULL, runtime_s = NA_real_,
+                         status = paste0("error: ", conditionMessage(e)))
+                  })
+  sc_row <- if (identical(run$status, "ok")) {
+    cd_score(.coerce_amat(run$amat, colnames(sim$data)), sim$truth)
+  } else {
+    data.frame(skeleton_f1 = NA_real_, skeleton_precision = NA_real_,
+               skeleton_recall = NA_real_, shd = NA_real_,
+               orient_recall = NA_real_)
+  }
+  data.frame(
+    scenario = sc, family = sim$family, method = id,
+    method_family = m@family, language = m@language, seed = seed,
+    status = run$status, skeleton_f1 = sc_row$skeleton_f1,
+    shd = sc_row$shd, orient_recall = sc_row$orient_recall,
+    runtime_s = as.double(run$runtime_s), stringsAsFactors = FALSE
+  )
 }
 
 #' Empty benchmark result

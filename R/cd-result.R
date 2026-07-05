@@ -139,6 +139,80 @@ S7::method(print, cd_result) <- function(x, ...) {
   invisible(x)
 }
 
+#' Plot a discovery result as a graph
+#'
+#' Draws the recovered graph with the variables on a circle and an arrow for
+#' each directed edge, a plain segment for each undirected one. It uses base
+#' graphics only, so it needs no plotting back-end.
+#'
+#' @param x A [cd_result] with a non-empty graph.
+#' @param ... Further graphical parameters passed to the node points.
+#' @returns `x`, invisibly.
+#' @name plot.cd_result
+#' @examples
+#' g <- matrix(0, 3, 3, dimnames = list(paste0("x", 1:3), paste0("x", 1:3)))
+#' g["x1", "x2"] <- 1
+#' g["x2", "x3"] <- 1
+#' plot(cd_result(graph = g, method = "demo"))
+S7::method(plot, cd_result) <- function(x, ...) {
+  amat <- x@graph
+  if (length(amat) == 0L) {
+    stop(call. = FALSE, "the result has no graph to plot.")
+  }
+  p <- nrow(amat)
+  nm <- colnames(amat)
+  if (is.null(nm)) {
+    nm <- paste0("x", seq_len(p))
+  }
+  ang <- seq(0, 2 * pi, length.out = p + 1L)[seq_len(p)]
+  xs <- cos(ang)
+  ys <- sin(ang)
+
+  op <- graphics::par(mar = c(1, 1, 2, 1))
+  on.exit(graphics::par(op))
+  graphics::plot.new()
+  graphics::plot.window(xlim = c(-1.35, 1.35), ylim = c(-1.35, 1.35), asp = 1)
+
+  # ---- Edges -----------------------------------------------------------------
+  # draw each pair once, shortened to sit just off the node markers
+  gap <- 0.12
+  for (i in seq_len(p)) {
+    for (j in seq_len(p)) {
+      if (i >= j) {
+        next
+      }
+      a_ij <- amat[i, j] != 0
+      a_ji <- amat[j, i] != 0
+      if (!a_ij && !a_ji) {
+        next
+      }
+      dx <- xs[j] - xs[i]
+      dy <- ys[j] - ys[i]
+      len <- sqrt(dx^2 + dy^2)
+      ux <- dx / len
+      uy <- dy / len
+      x0 <- xs[i] + ux * gap
+      y0 <- ys[i] + uy * gap
+      x1 <- xs[j] - ux * gap
+      y1 <- ys[j] - uy * gap
+      if (a_ij && a_ji) {
+        graphics::segments(x0, y0, x1, y1, col = "grey40", lwd = 2)
+      } else if (a_ij) {
+        graphics::arrows(x0, y0, x1, y1, length = 0.12, col = "grey20", lwd = 2)
+      } else {
+        graphics::arrows(x1, y1, x0, y0, length = 0.12, col = "grey20", lwd = 2)
+      }
+    }
+  }
+
+  # ---- Nodes and labels ------------------------------------------------------
+  graphics::points(xs, ys, pch = 21, bg = "white", cex = 3, lwd = 2, ...)
+  graphics::text(xs, ys, nm, cex = 0.8)
+  title <- if (nzchar(x@method_name)) x@method_name else x@method
+  graphics::title(main = title)
+  invisible(x)
+}
+
 #' Edge list of a discovery result
 #'
 #' Returns the edges of a [cd_result] (or a bare adjacency matrix) as a data
@@ -146,21 +220,33 @@ S7::method(print, cd_result) <- function(x, ...) {
 #'
 #' @param x A [cd_result] or a square adjacency matrix in `amat.cpdag`
 #'   convention.
+#' @param agreement A single logical. When `TRUE` and `x` is a consensus
+#'   [cd_result] carrying per-edge agreement (from [cd_auto()] with
+#'   `mode = "consensus"`), an `agreement` column reports the share of the
+#'   combined methods that found each edge. `NA` where no agreement is recorded.
 #' @returns A data frame with columns `from`, `to`, and `type` (`"-->"` for a
-#'   directed edge, `"---"` for an undirected one). Zero rows when the graph is
-#'   empty.
+#'   directed edge, `"---"` for an undirected one), and -- when `agreement =
+#'   TRUE` -- an `agreement` column. Zero rows when the graph is empty.
 #' @family results
 #' @export
 #' @examples
 #' g <- matrix(c(0, 0, 1, 0), 2, 2,
 #'             dimnames = list(c("x1", "x2"), c("x1", "x2")))
 #' cd_edges(cd_result(graph = g, method = "demo"))
-cd_edges <- function(x) {
+cd_edges <- function(x, agreement = FALSE) {
   amat <- if (S7::S7_inherits(x, cd_result)) x@graph else x
-  empty <- data.frame(
-    from = character(0), to = character(0), type = character(0),
-    stringsAsFactors = FALSE
-  )
+  agr <- if (isTRUE(agreement) && S7::S7_inherits(x, cd_result)) {
+    x@provenance$agreement
+  } else {
+    NULL
+  }
+  empty_cols <- if (isTRUE(agreement)) {
+    list(from = character(0), to = character(0), type = character(0),
+         agreement = numeric(0))
+  } else {
+    list(from = character(0), to = character(0), type = character(0))
+  }
+  empty <- do.call(data.frame, c(empty_cols, list(stringsAsFactors = FALSE)))
   if (length(amat) == 0L) {
     return(empty)
   }
@@ -195,5 +281,17 @@ cd_edges <- function(x) {
   if (length(rows) == 0L) {
     return(empty)
   }
-  do.call(rbind, rows)
+  out <- do.call(rbind, rows)
+  if (isTRUE(agreement)) {
+    out$agreement <- if (is.matrix(agr)) {
+      vapply(seq_len(nrow(out)), function(r) {
+        f <- out$from[r]
+        t <- out$to[r]
+        if (all(c(f, t) %in% rownames(agr))) agr[f, t] else NA_real_
+      }, numeric(1))
+    } else {
+      NA_real_
+    }
+  }
+  out
 }

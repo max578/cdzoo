@@ -9,7 +9,8 @@ cd_benchmark(
   scenarios = NULL,
   seeds = 1:4,
   cost_limit = c("medium", "fast", "slow", "very_slow"),
-  verbose = TRUE
+  verbose = TRUE,
+  mc.cores = 1L
 )
 }
 \arguments{
@@ -26,6 +27,12 @@ seed.}
 of \code{"fast"}, \code{"medium"}, \code{"slow"}, or \code{"very_slow"}.}
 
 \item{verbose}{A single logical: report progress per scenario.}
+
+\item{mc.cores}{A single positive integer: the number of cores to run the
+grid on. The default \code{1L} runs serially. Each cell is deterministic given
+its scenario seed and independent of the others, so the result is identical
+for any core count; parallel execution uses \code{\link[parallel:mclapply]{parallel::mclapply()}} (which
+falls back to serial on Windows).}
 }
 \value{
 A data frame with one row per (scenario, method, seed) run, with
