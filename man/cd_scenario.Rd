@@ -9,7 +9,8 @@ cd_scenario(name, seed = 1L)
 \arguments{
 \item{name}{A single string: the scenario name (see \code{\link[=cd_scenarios]{cd_scenarios()}}).}
 
-\item{seed}{A single integer seed for reproducibility.}
+\item{seed}{A single integer-valued seed for reproducibility; any finite
+number is accepted (a value beyond integer range is folded back into it).}
 }
 \value{
 A list with \code{data} (the observation matrix), \code{truth} (the true graph

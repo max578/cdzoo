@@ -23,7 +23,8 @@ stability-weighted union).}
 
 \item{report}{A single logical. When \code{TRUE} (the default) the recommended
 method is run and its graph returned; when \code{FALSE} only the recommendation
-is returned, with an empty graph.}
+is returned, with an empty graph and the status
+\code{"recommendation only (report = FALSE)"}.}
 
 \item{top_k}{The number of methods to combine in \code{"consensus"} mode.}
 

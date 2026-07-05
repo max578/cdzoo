@@ -28,3 +28,12 @@ test_that("every scenario generates data and a truth in convention", {
 test_that("an unknown scenario errors helpfully", {
   expect_error(cd_scenario("not_a_scenario"), "Unknown scenario")
 })
+
+test_that("large seeds do not overflow the derived graph seed", {
+  for (s in list(300000L, 2e6, 3e9)) {
+    sim <- expect_silent(cd_scenario("linear_gaussian", seed = s))
+    expect_equal(dim(sim$truth), c(sim$p, sim$p))
+  }
+  expect_error(cd_scenario("linear_gaussian", seed = Inf), "finite")
+  expect_error(cd_scenario("linear_gaussian", seed = c(1, 2)), "single")
+})

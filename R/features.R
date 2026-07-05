@@ -6,6 +6,24 @@
 # the route. None of them is a discovery algorithm -- they only describe the
 # data.
 
+#' Deterministic subsample index for the feature tests
+#'
+#' An evenly spaced index over the rows. The diagnostics stay pure this way:
+#' repeated calls on the same data return the same statistics, and the caller's
+#' random-number state is never touched.
+#'
+#' @param n The number of rows.
+#' @param limit The largest subsample the calling test wants.
+#' @returns An integer vector of row indices; `seq_len(n)` when `n <= limit`.
+#' @noRd
+#' @keywords internal
+.even_rows <- function(n, limit) {
+  if (n <= limit) {
+    return(seq_len(n))
+  }
+  unique(as.integer(round(seq(1, n, length.out = limit))))
+}
+
 #' Excess kurtosis of a numeric vector
 #'
 #' @param x A numeric vector.
@@ -23,17 +41,16 @@
 
 #' Fraction of columns whose marginal departs from Gaussian
 #'
-#' Uses the Shapiro-Wilk test (sub-sampled to its 5000-row limit) per column and
-#' reports the share that reject normality at the 5% level, alongside the mean
-#' absolute excess kurtosis as a continuous companion.
+#' Uses the Shapiro-Wilk test (evenly subsampled to its 5000-row limit) per
+#' column and reports the share that reject normality at the 5% level, alongside
+#' the mean absolute excess kurtosis as a continuous companion.
 #'
 #' @param data A numeric matrix.
 #' @returns A list with `reject_fraction` and `mean_abs_kurtosis`.
 #' @noRd
 #' @keywords internal
 .non_gaussianity <- function(data) {
-  n <- nrow(data)
-  idx <- if (n > 5000L) sample.int(n, 5000L) else seq_len(n)
+  idx <- .even_rows(nrow(data), 5000L)
   rej <- vapply(seq_len(ncol(data)), function(j) {
     xj <- data[idx, j]
     if (stats::sd(xj) == 0) {
@@ -61,8 +78,7 @@
 #' @noRd
 #' @keywords internal
 .residual_variances <- function(data) {
-  n <- nrow(data)
-  idx <- if (n > 2000L) sample.int(n, 2000L) else seq_len(n)
+  idx <- .even_rows(nrow(data), 2000L)
   d <- as.data.frame(data[idx, , drop = FALSE])
   vapply(seq_along(d), function(j) {
     fit <- tryCatch(
@@ -87,8 +103,7 @@
 #' @noRd
 #' @keywords internal
 .nonlinearity_score <- function(data) {
-  n <- nrow(data)
-  idx <- if (n > 2000L) sample.int(n, 2000L) else seq_len(n)
+  idx <- .even_rows(nrow(data), 2000L)
   d <- as.data.frame(data[idx, , drop = FALSE])
   p <- ncol(d)
   gains <- vapply(seq_len(p), function(j) {
@@ -172,6 +187,12 @@
 #' Reports the data characteristics the recommender uses to route a problem, as a
 #' one-row data frame. Use it to see what [cd_auto()] sees before it chooses a
 #' method.
+#'
+#' On large data sets the statistics are computed on a deterministic, evenly
+#' spaced subsample of rows (at most 5000 rows for the normality test, 2000 for
+#' the regression heuristics), so the diagnostics are pure: repeated calls on the
+#' same data return the same characteristics, and the caller's random-number
+#' state is never touched.
 #'
 #' @param data A numeric matrix or data frame of observations (rows) by
 #'   variables (columns).

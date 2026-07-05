@@ -1,3 +1,26 @@
+# cdzoo 0.1.1
+
+## Minor improvements and fixes
+
+* `cd_diagnose()` -- and therefore `cd_auto()`'s routing -- is now deterministic
+  and leaves the caller's random-number state untouched: on large data sets the
+  normality and regression heuristics read an evenly spaced, deterministic
+  subsample instead of a random one. Repeated calls on the same data return the
+  same characteristics and the same recommendation.
+* `cd_scenario()` accepts any finite seed; seeds above about 271,000 previously
+  failed with an integer-overflow error. Realisations at all previously-valid
+  seeds are unchanged.
+* `cd_auto(report = FALSE)` now labels its result
+  `"recommendation only (report = FALSE)"` instead of `"ok"`, so a
+  recommendation-only result -- and the manifest it emits -- states honestly
+  that no graph was recovered.
+* `cd_benchmark()` now warns about requested methods it drops (an unknown id,
+  an absent back-end, or a cost above `cost_limit`) instead of dropping them
+  silently.
+* The citation file reads the version from the installed package rather than
+  hard-coding it, and the pkgdown reference index gained the
+  sufficient-statistic and federation-manifest functions added in 0.1.0.
+
 # cdzoo 0.1.0
 
 ## New features

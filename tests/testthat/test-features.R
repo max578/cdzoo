@@ -1,3 +1,14 @@
+test_that("cd_diagnose is deterministic and leaves the RNG state untouched", {
+  set.seed(7)
+  d <- matrix(stats::rnorm(6000L * 4L), 6000L, 4L)
+  set.seed(99)
+  before <- get(".Random.seed", envir = globalenv())
+  one <- cd_diagnose(d)
+  expect_identical(get(".Random.seed", envir = globalenv()), before)
+  two <- cd_diagnose(d)
+  expect_identical(one, two)
+})
+
 test_that("cd_diagnose flags non-Gaussian margins", {
   ng <- cd_diagnose(cd_scenario("linear_laplace", seed = 1)$data)
   g <- cd_diagnose(cd_scenario("linear_gaussian", seed = 1)$data)

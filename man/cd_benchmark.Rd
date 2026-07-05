@@ -41,7 +41,9 @@ errors on a cell records a failed status rather than stopping the benchmark.
 \details{
 The default skips methods costlier than \code{cost_limit} so a first pass is quick;
 raise the limit to include the slower kernel and search methods. With no
-back-end installed the result has zero rows.
+back-end installed the result has zero rows. A requested method that cannot
+run is dropped with a warning naming it and the reason (an unknown id, an
+absent back-end, or a cost above the limit) -- never silently.
 }
 \examples{
 if (requireNamespace("pcalg", quietly = TRUE)) {

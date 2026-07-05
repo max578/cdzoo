@@ -39,8 +39,28 @@ test_that("cd_benchmark scores a method across seeds", {
   expect_true(all(c("skeleton_f1", "shd", "orient_recall") %in% names(res)))
 })
 
-test_that("cd_benchmark with no installed method returns zero rows", {
-  res <- cd_benchmark(methods = "off_test", scenarios = "linear_gaussian",
-                      seeds = 1, verbose = FALSE)
+test_that("cd_benchmark with no installed method warns and returns zero rows", {
+  expect_warning(
+    res <- cd_benchmark(methods = "off_test", scenarios = "linear_gaussian",
+                        seeds = 1, verbose = FALSE),
+    "not installed")
   expect_equal(nrow(res), 0L)
+})
+
+test_that("cd_benchmark names the requested methods it drops", {
+  expect_warning(
+    res <- cd_benchmark(methods = "no_such_method",
+                        scenarios = "linear_gaussian", seeds = 1L,
+                        verbose = FALSE),
+    "unknown method")
+  expect_equal(nrow(res), 0L)
+
+  register_method(cd_method(
+    id = "very_slow_test", name = "Very slow", family = "score",
+    cost = "very_slow", available = function() TRUE,
+    run = function(data) list(amat = NULL, runtime_s = 0, status = "ok")))
+  expect_warning(
+    cd_benchmark(methods = "very_slow_test", scenarios = "linear_gaussian",
+                 seeds = 1L, cost_limit = "medium", verbose = FALSE),
+    "cost limit")
 })

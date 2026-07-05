@@ -21,7 +21,14 @@
 }
 
 .rand_B <- function(p, edge_prob, seed) {
-  set.seed(seed * 7919L + 13L)
+  # derive the graph seed in double arithmetic and fold back into integer range
+  # only when needed, so a large scenario seed cannot overflow R's integer type
+  # while every previously-valid seed keeps its realisation.
+  derived <- as.double(seed) * 7919 + 13
+  if (abs(derived) > .Machine$integer.max) {
+    derived <- derived %% .Machine$integer.max
+  }
+  set.seed(as.integer(derived))
   .random_lower_B(p, edge_prob, lo = 0.5, hi = 1.5)
 }
 
@@ -201,7 +208,8 @@
 #' recovered structure is scored against by [cd_score()].
 #'
 #' @param name A single string: the scenario name (see [cd_scenarios()]).
-#' @param seed A single integer seed for reproducibility.
+#' @param seed A single integer-valued seed for reproducibility; any finite
+#'   number is accepted (a value beyond integer range is folded back into it).
 #' @returns A list with `data` (the observation matrix), `truth` (the true graph
 #'   in `amat.cpdag` convention), `dag` (the raw simulator DAG), `scenario`,
 #'   `family`, `p`, and `n`.
@@ -215,6 +223,13 @@ cd_scenario <- function(name, seed = 1L) {
   if (!name %in% names(.SCENARIOS)) {
     stop(call. = FALSE, sprintf(
       "Unknown scenario '%s'. See cd_scenarios()$name.", name))
+  }
+  if (length(seed) != 1L || !is.finite(seed)) {
+    stop(call. = FALSE, "`seed` must be a single finite number.")
+  }
+  seed <- as.double(seed)
+  if (abs(seed) > .Machine$integer.max) {
+    seed <- seed %% .Machine$integer.max
   }
   sc <- .SCENARIOS[[name]]
   sim <- sc$gen(as.integer(seed))

@@ -1,7 +1,7 @@
 Package: cdzoo
 Title: A Multi-Backend Benchmark Harness and Recommender for Causal
     Discovery
-Version: 0.1.0
+Version: 0.1.1
 Authors@R:
     person("Max", "Moldovan", , "max.moldovan@gmail.com",
            role = c("aut", "cre", "cph"),
@@ -37,7 +37,7 @@ Suggests:
     testthat (>= 3.0.0)
 VignetteBuilder:
     knitr
-URL: https://github.com/max578/cdzoo
+URL: https://max578.github.io/cdzoo, https://github.com/max578/cdzoo
 BugReports: https://github.com/max578/cdzoo/issues
 Config/testthat/edition: 3
 LazyData: true

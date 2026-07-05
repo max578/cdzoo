@@ -267,7 +267,8 @@
 #'   stability-weighted union).
 #' @param report A single logical. When `TRUE` (the default) the recommended
 #'   method is run and its graph returned; when `FALSE` only the recommendation
-#'   is returned, with an empty graph.
+#'   is returned, with an empty graph and the status
+#'   `"recommendation only (report = FALSE)"`.
 #' @param top_k The number of methods to combine in `"consensus"` mode.
 #' @param threshold The partial-correlation edge threshold for the
 #'   density route.
@@ -320,7 +321,8 @@ cd_auto <- function(data, mode = c("route", "consensus"), report = TRUE,
     return(cd_result(
       method = route$method, method_name = chosen@name,
       family = chosen@family, language = chosen@language,
-      output = chosen@output, status = "ok",
+      output = chosen@output,
+      status = "recommendation only (report = FALSE)",
       rationale = route$rationale, confidence = route$confidence,
       alternatives = as.list(alt), provenance = prov
     ))

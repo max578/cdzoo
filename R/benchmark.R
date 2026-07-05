@@ -11,7 +11,9 @@
 #'
 #' The default skips methods costlier than `cost_limit` so a first pass is quick;
 #' raise the limit to include the slower kernel and search methods. With no
-#' back-end installed the result has zero rows.
+#' back-end installed the result has zero rows. A requested method that cannot
+#' run is dropped with a warning naming it and the reason (an unknown id, an
+#' absent back-end, or a cost above the limit) -- never silently.
 #'
 #' @param methods A character vector of method ids to run, or `NULL` (the
 #'   default) for every installed method.
@@ -46,14 +48,41 @@ cd_benchmark <- function(methods = NULL, scenarios = NULL, seeds = 1:4,
     scenarios <- cd_scenarios()$name
   }
   available <- .available_method_ids()
-  if (is.null(methods)) {
+
+  # Resolve the method set. A requested id that drops out -- unknown, back-end
+  # not installed, or over the cost limit -- is named, never silently vanished.
+  requested <- !is.null(methods)
+  if (!requested) {
     methods <- available
   } else {
+    unknown <- Filter(function(id) is.null(.get_method(id)), methods)
+    if (length(unknown) > 0L) {
+      warning(call. = FALSE, "Dropping unknown method id(s): ",
+              paste(unknown, collapse = ", "),
+              ". See list_methods()$id for the registered methods.")
+    }
+    uninstalled <- setdiff(setdiff(methods, unknown), available)
+    if (length(uninstalled) > 0L) {
+      warning(call. = FALSE,
+              "Dropping method(s) whose back-end is not installed: ",
+              paste(uninstalled, collapse = ", "), ".")
+    }
     methods <- intersect(methods, available)
   }
-  methods <- Filter(function(id) {
-    .COST_RANK[[.get_method(id)@cost]] <= limit
+  capped <- Filter(function(id) {
+    .COST_RANK[[.get_method(id)@cost]] > limit
   }, methods)
+  if (length(capped) > 0L) {
+    if (requested) {
+      warning(call. = FALSE, "Dropping requested method(s) over the '",
+              cost_limit, "' cost limit: ", paste(capped, collapse = ", "),
+              ". Raise `cost_limit` to include them.")
+    } else if (verbose) {
+      message(sprintf("skipping %s over the '%s' cost limit",
+                      paste(capped, collapse = ", "), cost_limit))
+    }
+  }
+  methods <- setdiff(methods, capped)
 
   rows <- vector("list", 0L)
   if (length(methods) == 0L) {

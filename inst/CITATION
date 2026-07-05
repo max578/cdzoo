@@ -5,6 +5,6 @@ bibentry(
   title    = "cdzoo: A Multi-Backend Benchmark Harness and Recommender for Causal Discovery",
   author   = person("Max", "Moldovan"),
   year     = "2026",
-  note     = "R package version 0.0.0.9000",
+  note     = paste("R package version", meta$Version),
   url      = "https://github.com/max578/cdzoo"
 )

@@ -47,3 +47,13 @@ test_that("the emitted manifest is reproducible by content", {
   expect_identical(as_orchestra_manifest(r)@run_id,
                    as_orchestra_manifest(r)@run_id)
 })
+
+test_that("a recommendation-only result abstains with an honest reason", {
+  skip_if_not_installed("pcalg")
+  rec <- cd_auto(cd_scenario("linear_gaussian", seed = 1)$data, report = FALSE)
+  expect_match(rec@status, "recommendation only")
+  m <- as_orchestra_manifest(rec)
+  expect_true(m@summary$abstained)
+  expect_match(m@summary$abstain_reason, "recommendation only")
+  expect_true(verify_manifest(m)$ok)
+})

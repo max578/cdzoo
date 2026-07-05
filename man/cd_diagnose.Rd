@@ -19,6 +19,13 @@ Reports the data characteristics the recommender uses to route a problem, as a
 one-row data frame. Use it to see what \code{\link[=cd_auto]{cd_auto()}} sees before it chooses a
 method.
 }
+\details{
+On large data sets the statistics are computed on a deterministic, evenly
+spaced subsample of rows (at most 5000 rows for the normality test, 2000 for
+the regression heuristics), so the diagnostics are pure: repeated calls on the
+same data return the same characteristics, and the caller's random-number
+state is never touched.
+}
 \examples{
 sim <- cd_scenario("linear_laplace", seed = 1)
 cd_diagnose(sim$data)
