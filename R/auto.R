@@ -275,8 +275,10 @@
 #' @param density_components The number of mixture components to fit when routing
 #'   an evaluable target density.
 #' @returns A [cd_result] whose `rationale`, `confidence`, and `alternatives`
-#'   record the recommendation. In `"consensus"` mode the per-edge agreement is
-#'   stored in the result's `provenance`.
+#'   (always a list of method labels, in the route's preference order) record
+#'   the recommendation. In `"consensus"` mode the per-edge agreement and the
+#'   individual member results are stored in the result's `provenance` (as
+#'   `agreement` and `runs`).
 #' @seealso [cd_diagnose()], [cd_discover()], [list_methods()]
 #' @export
 #' @examples
@@ -349,8 +351,9 @@ cd_auto <- function(data, mode = c("route", "consensus"), report = TRUE,
                           paste(vapply(ids, .method_label, character(1)),
                                 collapse = ", ")),
       confidence = route$confidence,
-      alternatives = runs,
-      provenance = c(prov, list(agreement = comb$agreement, n_ok = n_ok))
+      alternatives = as.list(alt),
+      provenance = c(prov, list(agreement = comb$agreement, n_ok = n_ok,
+                                runs = runs))
     ))
   }
 

@@ -36,8 +36,10 @@ an evaluable target density.}
 }
 \value{
 A \link{cd_result} whose \code{rationale}, \code{confidence}, and \code{alternatives}
-record the recommendation. In \code{"consensus"} mode the per-edge agreement is
-stored in the result's \code{provenance}.
+(always a list of method labels, in the route's preference order) record
+the recommendation. In \code{"consensus"} mode the per-edge agreement and the
+individual member results are stored in the result's \code{provenance} (as
+\code{agreement} and \code{runs}).
 }
 \description{
 Inspects a data set with \code{\link[=cd_diagnose]{cd_diagnose()}}'s transparent characteristics, routes

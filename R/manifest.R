@@ -19,7 +19,11 @@
 
 # The manifest schema version this member emits. Tracks the reference
 # implementation; bump only with an additive (x.y) or breaking (x.0) change there.
-MANIFEST_VERSION <- "1.1.0-draft"
+# 2.0.0 (2026-07-05): the integrity hash is computed over version-stable bytes
+# (format-2 serialisation, 14-byte header dropped), so a manifest emitted under
+# one R version verifies under any other; manifests emitted before this change
+# no longer verify and must be re-emitted.
+MANIFEST_VERSION <- "2.0.0-draft"
 
 # The inferential-target enum, kept identical to the reference contract so a
 # consumer's dispatch never sees an unknown token. "structure" was added (an
@@ -37,6 +41,11 @@ MANIFEST_VERSION <- "1.1.0-draft"
 #' ordering match the reference implementation so a manifest hashed by cdzoo
 #' verifies under the federation's `verify_manifest()`.
 #'
+#' Serialisation is pinned to format 2 and its fixed 14-byte header (magic,
+#' format, writer/minimum R versions) is dropped before hashing: those bytes are
+#' the only version-varying part, so a manifest emitted under one R version
+#' verifies under any other. Matches the reference implementation byte for byte.
+#'
 #' @param params,outputs,weights,obs_target,seed,summary The load-bearing slots.
 #' @returns A single `"sha256:"`-prefixed hex string.
 #' @noRd
@@ -44,8 +53,9 @@ MANIFEST_VERSION <- "1.1.0-draft"
 .hash_payload <- function(params, outputs, weights, obs_target, seed,
                           summary = NULL) {
   obj <- list(params, outputs, weights, obs_target, seed, summary)
-  raw <- serialize(obj, connection = NULL)
-  paste0("sha256:", digest::digest(raw, algo = "sha256", serialize = FALSE))
+  raw <- serialize(obj, connection = NULL, version = 2L)
+  paste0("sha256:", digest::digest(raw[-seq_len(14L)], algo = "sha256",
+                                   serialize = FALSE))
 }
 
 #' A typed home for a discovery verdict (contract v1.1)

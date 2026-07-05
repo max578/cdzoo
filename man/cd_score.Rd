@@ -15,12 +15,21 @@ convention.}
 }
 \value{
 A one-row data frame with \code{skeleton_f1}, \code{skeleton_precision},
-\code{skeleton_recall}, \code{shd}, and \code{orient_recall}.
+\code{skeleton_recall}, \code{shd}, and \code{orient_recall}. \code{skeleton_f1} is \code{NA} when
+the truth has no edges (recall is undefined there); an empty estimate
+against a non-empty truth scores 0.
 }
 \description{
 Compares a discovery result -- a \link{cd_result} or a bare adjacency matrix -- with
 the true graph and returns the skeleton, distance, and orientation metrics. The
 truth is typically the \code{truth} element of a \code{\link[=cd_scenario]{cd_scenario()}}.
+}
+\details{
+Both matrices are normalised before scoring, so any non-zero entry counts as
+an edge mark and the three metrics see the same graph whether the input is
+0/1 or weighted. When the estimate carries no dimnames but matches the
+truth's dimensions, it is scored positionally against the truth's variable
+order.
 }
 \examples{
 if (requireNamespace("pcalg", quietly = TRUE)) {

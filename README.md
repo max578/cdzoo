@@ -34,6 +34,12 @@ The R back-ends are installed with `install.packages(c("pcalg", "bnlearn"))`. Th
 Python back-ends are reached through `reticulate`; install them into the active
 Python environment (for example `lingam`, `causal-learn`, `gcastle`, `dagma`).
 
+`cdzoo` never starts Python just to report availability: the Python back-ends
+show as installed once reticulate's interpreter is initialised or configured
+(for example via `RETICULATE_PYTHON`). Set `options(cdzoo.python_init = TRUE)`
+to let the availability check initialise Python eagerly, and call
+`list_methods(refresh = TRUE)` after installing a Python module mid-session.
+
 ## Usage
 
 ``` r

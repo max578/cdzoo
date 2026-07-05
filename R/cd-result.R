@@ -30,8 +30,8 @@
 #' @param status A single string: `"ok"`, or a short error description.
 #' @param rationale A single string: why the recommender chose this method.
 #' @param confidence A single string: `"high"`, `"moderate"`, or `"low"`.
-#' @param alternatives A list of alternative results or method identifiers the
-#'   recommender considered.
+#' @param alternatives A list of method labels the recommender considered as
+#'   alternatives, in its preference order.
 #' @param provenance A list of call metadata (data characteristics, options).
 #'
 #' @returns An S7 object of class `cd_result`.

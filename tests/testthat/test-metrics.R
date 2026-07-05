@@ -37,3 +37,23 @@ test_that("an unoriented true edge is a partial miss in shd", {
 test_that("cd_score validates the truth", {
   expect_error(cd_score(amat_chain3(), matrix(0, 2, 3)), "square")
 })
+
+test_that("weighted estimates are normalised before scoring", {
+  truth <- amat_chain3()
+  est <- truth
+  est["x1", "x2"] <- 2 # a weighted arrow is still an arrow
+  s <- cd_score(est, truth)
+  expect_equal(s$skeleton_f1, 1)
+  expect_equal(s$shd, 0)
+  expect_equal(s$orient_recall, 1)
+})
+
+test_that("skeleton F1 is undefined against an edgeless truth", {
+  empty <- matrix(0, 3, 3, dimnames = dimnames(amat_chain3()))
+  s <- cd_score(empty, empty)
+  expect_true(is.na(s$skeleton_f1))
+  expect_equal(s$shd, 0) # a perfect empty recovery still has zero distance
+  s2 <- cd_score(amat_chain3(), empty)
+  expect_true(is.na(s2$skeleton_f1))
+  expect_equal(s2$shd, 2)
+})

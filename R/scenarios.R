@@ -55,6 +55,10 @@
 
 # -- structural-causal-model builders ---------------------------------------
 .sim_linear_noise <- function(n, B, noisefun, noise_sd = 1, seed = NULL) {
+  # force the (lazily supplied) graph before seeding: .rand_B seeds its own
+  # stream while drawing B, so without the force the noise below would run on
+  # the tail of the graph stream and this set.seed would be dead code.
+  force(B)
   if (!is.null(seed)) {
     set.seed(seed)
   }
@@ -77,6 +81,8 @@
 # subpopulations, so the pooled linear correlation is near zero but the joint is
 # a clear two-component mixture.
 .sim_regimes <- function(n, B, noise_sd = 0.5, seed = NULL) {
+  # force B before seeding, for the same reason as .sim_linear_noise
+  force(B)
   if (!is.null(seed)) {
     set.seed(seed)
   }

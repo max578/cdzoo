@@ -67,3 +67,15 @@ test_that("cd_auto consensus returns a combined graph with agreement", {
   expect_equal(dim(res@graph), c(sim$p, sim$p))
   expect_true(!is.null(res@provenance$agreement))
 })
+
+test_that("alternatives are labels in both modes; consensus runs ride in provenance", {
+  skip_if_not_installed("pcalg")
+  sim <- cd_scenario("linear_laplace", seed = 1)
+  routed <- cd_auto(sim$data, report = FALSE)
+  con <- cd_auto(sim$data, mode = "consensus", top_k = 2L)
+  for (res in list(routed, con)) {
+    expect_true(all(vapply(res@alternatives, is.character, logical(1))))
+  }
+  expect_gte(length(con@provenance$runs), 1L)
+  expect_true(S7::S7_inherits(con@provenance$runs[[1L]], cd_result))
+})

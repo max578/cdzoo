@@ -4,11 +4,15 @@
 \alias{list_methods}
 \title{The registered discovery methods}
 \usage{
-list_methods(as_data_frame = TRUE)
+list_methods(as_data_frame = TRUE, refresh = FALSE)
 }
 \arguments{
 \item{as_data_frame}{A single logical. When \code{TRUE} (the default) a data frame
 is returned; when \code{FALSE} a named list of \link{cd_method} objects.}
+
+\item{refresh}{A single logical. When \code{TRUE}, the session cache of Python
+back-end availability checks is discarded and the probes run again -- use
+it after installing a Python module mid-session.}
 }
 \value{
 A data frame with columns \code{id}, \code{name}, \code{family}, \code{language},
@@ -18,6 +22,14 @@ A data frame with columns \code{id}, \code{name}, \code{family}, \code{language}
 Returns every registered method as a \link{cd_method} list, or -- with
 \code{as_data_frame = TRUE} -- a data frame summarising the registry and which
 back-ends are installed in the current session.
+}
+\details{
+Python back-end availability is checked passively: cdzoo never initialises
+Python (which can trigger interpreter provisioning) just to report it. A
+Python back-end shows \code{installed = TRUE} once reticulate's interpreter is
+initialised or configured (for example via \code{RETICULATE_PYTHON}); set
+\code{options(cdzoo.python_init = TRUE)} to let this check initialise Python
+eagerly. Probe results are cached for the session.
 }
 \examples{
 list_methods()

@@ -47,7 +47,11 @@
   fn <- sum(!ue[ix] & ut[ix])
   prec <- if (tp + fp > 0) tp / (tp + fp) else NA_real_
   rec <- if (tp + fn > 0) tp / (tp + fn) else NA_real_
-  f1 <- if (!is.na(prec) && !is.na(rec) && prec + rec > 0) {
+  f1 <- if (is.na(rec)) {
+    NA_real_ # the truth has no edges, so recall (and F1) is undefined
+  } else if (is.na(prec)) {
+    0 # an empty estimate against a non-empty truth misses everything
+  } else if (prec + rec > 0) {
     2 * prec * rec / (prec + rec)
   } else {
     0
@@ -136,12 +140,20 @@
 #' the true graph and returns the skeleton, distance, and orientation metrics. The
 #' truth is typically the `truth` element of a [cd_scenario()].
 #'
+#' Both matrices are normalised before scoring, so any non-zero entry counts as
+#' an edge mark and the three metrics see the same graph whether the input is
+#' 0/1 or weighted. When the estimate carries no dimnames but matches the
+#' truth's dimensions, it is scored positionally against the truth's variable
+#' order.
+#'
 #' @param x A [cd_result] or a square adjacency matrix in `amat.cpdag`
 #'   convention.
 #' @param truth The true graph in `amat.cpdag` convention (for example
 #'   `cd_scenario(...)$truth`).
 #' @returns A one-row data frame with `skeleton_f1`, `skeleton_precision`,
-#'   `skeleton_recall`, `shd`, and `orient_recall`.
+#'   `skeleton_recall`, `shd`, and `orient_recall`. `skeleton_f1` is `NA` when
+#'   the truth has no edges (recall is undefined there); an empty estimate
+#'   against a non-empty truth scores 0.
 #' @seealso [cd_scenario()], [cd_benchmark()]
 #' @export
 #' @examples
@@ -163,6 +175,10 @@ cd_score <- function(x, truth) {
       stringsAsFactors = FALSE
     ))
   }
+  # any non-zero entry is an edge mark, so the skeleton, distance, and
+  # orientation metrics all see the same graph for weighted input
+  est <- (est != 0) * 1
+  truth <- (truth != 0) * 1
   ss <- .skeleton_scores(est, truth)
   data.frame(
     skeleton_f1 = ss$f1,

@@ -48,6 +48,23 @@ test_that("the emitted manifest is reproducible by content", {
                    as_orchestra_manifest(r)@run_id)
 })
 
+test_that("the integrity hash matches the frozen contract fixture", {
+  # guards the hash scheme itself: this literal was produced by the 2.0.0-draft
+  # version-stable scheme (format-2 serialisation, header dropped) and must be
+  # identical on every R version. A change here is a federation contract break.
+  lab <- c("x1", "x2", "x3")
+  g <- matrix(0, 3, 3, dimnames = list(lab, lab))
+  g["x1", "x2"] <- 1
+  g["x2", "x3"] <- 1
+  m <- as_orchestra_manifest(cd_result(graph = g, method = "fixture"),
+                             run_id = "fixture", seed = 1L)
+  expect_identical(m@manifest_version, "2.0.0-draft")
+  expect_identical(
+    m@data_hash,
+    "sha256:6953ca8bd7e5841311a36be05f4115f22752e200e1f36c9445f92fd7fd567b1f")
+  expect_true(verify_manifest(m)$ok)
+})
+
 test_that("a recommendation-only result abstains with an honest reason", {
   skip_if_not_installed("pcalg")
   rec <- cd_auto(cd_scenario("linear_gaussian", seed = 1)$data, report = FALSE)

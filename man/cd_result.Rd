@@ -44,8 +44,8 @@ functional, continuous-optimisation, hybrid, or density).}
 
 \item{confidence}{A single string: \code{"high"}, \code{"moderate"}, or \code{"low"}.}
 
-\item{alternatives}{A list of alternative results or method identifiers the
-recommender considered.}
+\item{alternatives}{A list of method labels the recommender considered as
+alternatives, in its preference order.}
 
 \item{provenance}{A list of call metadata (data characteristics, options).}
 }

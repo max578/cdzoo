@@ -11,6 +11,7 @@ Provides a single typed interface over a curated portfolio of causal-structure-d
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://max578.github.io/cdzoo}
   \item \url{https://github.com/max578/cdzoo}
   \item Report bugs at \url{https://github.com/max578/cdzoo/issues}
 }

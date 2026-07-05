@@ -1,3 +1,30 @@
+test_that("the Python availability check never initialises Python itself", {
+  skip_if_not_installed("reticulate")
+  skip_if(isTRUE(reticulate::py_available(initialize = FALSE)),
+          "Python already initialised in this session")
+  old_opt <- options(cdzoo.python_init = FALSE)
+  old_env <- Sys.getenv("RETICULATE_PYTHON", unset = NA)
+  Sys.unsetenv("RETICULATE_PYTHON")
+  on.exit({
+    options(old_opt)
+    if (!is.na(old_env)) {
+      Sys.setenv(RETICULATE_PYTHON = old_env)
+    }
+  }, add = TRUE)
+  expect_false(cdzoo:::.py_module_available("lingam"))
+  # the check must not have initialised Python as a side effect
+  expect_false(isTRUE(reticulate::py_available(initialize = FALSE)))
+})
+
+test_that("Python availability probes are memoised and refreshable", {
+  skip_if_not_installed("reticulate")
+  assign("modules", list(fake_module_xyz = TRUE),
+         envir = cdzoo:::.py_state)
+  expect_true(cdzoo:::.py_module_available("fake_module_xyz"))
+  list_methods(refresh = TRUE)
+  expect_length(cdzoo:::.py_state$modules, 0L)
+})
+
 test_that("cd_method validates family and cost", {
   ok <- cd_method(id = "ok", family = "score", cost = "fast",
                   available = function() TRUE,

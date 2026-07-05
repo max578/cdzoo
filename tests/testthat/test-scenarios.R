@@ -29,6 +29,14 @@ test_that("an unknown scenario errors helpfully", {
   expect_error(cd_scenario("not_a_scenario"), "Unknown scenario")
 })
 
+test_that("scenario realisations are pinned at a fixed seed", {
+  # guards the noise stream against accidental seeding changes: the first cell
+  # is the first draw of the seed-1 stream (the graph uses its own derived
+  # stream). A change here is a reproducibility break and needs a NEWS entry.
+  sim <- cd_scenario("linear_gaussian", seed = 1)
+  expect_equal(unname(sim$data[1L, 1L]), -0.626453810742332, tolerance = 1e-12)
+})
+
 test_that("large seeds do not overflow the derived graph seed", {
   for (s in list(300000L, 2e6, 3e9)) {
     sim <- expect_silent(cd_scenario("linear_gaussian", seed = s))

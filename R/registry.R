@@ -73,15 +73,28 @@ register_method <- function(method) {
 #' `as_data_frame = TRUE` -- a data frame summarising the registry and which
 #' back-ends are installed in the current session.
 #'
+#' Python back-end availability is checked passively: cdzoo never initialises
+#' Python (which can trigger interpreter provisioning) just to report it. A
+#' Python back-end shows `installed = TRUE` once reticulate's interpreter is
+#' initialised or configured (for example via `RETICULATE_PYTHON`); set
+#' `options(cdzoo.python_init = TRUE)` to let this check initialise Python
+#' eagerly. Probe results are cached for the session.
+#'
 #' @param as_data_frame A single logical. When `TRUE` (the default) a data frame
 #'   is returned; when `FALSE` a named list of [cd_method] objects.
+#' @param refresh A single logical. When `TRUE`, the session cache of Python
+#'   back-end availability checks is discarded and the probes run again -- use
+#'   it after installing a Python module mid-session.
 #' @returns A data frame with columns `id`, `name`, `family`, `language`,
 #'   `cost`, and `installed`, or a named list of [cd_method] objects.
 #' @family registry
 #' @export
 #' @examples
 #' list_methods()
-list_methods <- function(as_data_frame = TRUE) {
+list_methods <- function(as_data_frame = TRUE, refresh = FALSE) {
+  if (isTRUE(refresh)) {
+    .py_state$modules <- list()
+  }
   ids <- ls(.method_registry)
   methods <- lapply(ids, .get_method)
   names(methods) <- ids
@@ -134,22 +147,49 @@ list_methods <- function(as_data_frame = TRUE) {
   isTRUE(ok)
 }
 
-# Locate a top-level module without importing it (so a mere availability probe
+# Locate a top-level module without importing it (so a mere availability check
 # does not pull in a heavy back-end such as torch). importlib.util.find_spec on a
 # top-level name reads the module's spec without executing it.
+#
+# The check is passive and memoised. cdzoo never initialises Python -- which can
+# trigger reticulate's interpreter provisioning, downloads included -- just to
+# answer an availability question. A Python back-end reports available when the
+# interpreter is already initialised, when one is configured via
+# RETICULATE_PYTHON, or when `options(cdzoo.python_init = TRUE)` opts into eager
+# initialisation. Probe results are cached for the session;
+# list_methods(refresh = TRUE) clears the cache after a mid-session install.
 .py_module_available <- function(module) {
   if (!requireNamespace("reticulate", quietly = TRUE)) {
     return(FALSE)
   }
-  if (!isTRUE(tryCatch(reticulate::py_available(initialize = TRUE),
-                       error = function(e) FALSE))) {
-    return(FALSE)
+  cached <- .py_state$modules[[module]]
+  if (!is.null(cached)) {
+    return(cached)
   }
-  ok <- tryCatch({
+  initialised <- isTRUE(tryCatch(reticulate::py_available(initialize = FALSE),
+                                 error = function(e) FALSE))
+  if (!initialised) {
+    opted_in <- isTRUE(getOption("cdzoo.python_init", FALSE)) ||
+      nzchar(Sys.getenv("RETICULATE_PYTHON"))
+    if (!opted_in) {
+      # deliberately not cached: the user may initialise Python later on
+      return(FALSE)
+    }
+    initialised <- isTRUE(tryCatch(reticulate::py_available(initialize = TRUE),
+                                   error = function(e) FALSE))
+    if (!initialised) {
+      return(FALSE)
+    }
+  }
+  ok <- isTRUE(tryCatch({
     il <- reticulate::import("importlib.util", convert = TRUE)
     !is.null(il$find_spec(module))
-  }, error = function(e) FALSE)
-  isTRUE(ok)
+  }, error = function(e) FALSE))
+  if (is.null(.py_state$modules)) {
+    .py_state$modules <- list()
+  }
+  .py_state$modules[[module]] <- ok
+  ok
 }
 
 # a writable, contiguous float64 numpy copy, kept as a Python object, because

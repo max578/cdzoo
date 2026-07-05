@@ -1,6 +1,49 @@
 # cdzoo 0.1.1
 
+## Breaking changes
+
+* The federation manifest's integrity hash is now computed over version-stable
+  bytes (serialisation pinned to format 2, its version-carrying header dropped
+  before hashing), matching the updated reference contract
+  (`MANIFEST_VERSION` `2.0.0-draft`). A manifest emitted under one R version
+  now verifies under any other. Manifests emitted before this change no longer
+  verify and must be re-emitted:
+
+  ```r
+  # before: verify_manifest(old_manifest)$ok could be FALSE on another R version
+  # after:  re-emit from the original result
+  m <- as_orchestra_manifest(result)
+  verify_manifest(m)$ok
+  ```
+
+* `cd_result@alternatives` now always holds method labels, in both `"route"`
+  and `"consensus"` modes; the consensus member results moved to
+  `provenance$runs`:
+
+  ```r
+  # before: con@alternatives held cd_result objects in consensus mode
+  # after:
+  con <- cd_auto(x, mode = "consensus")
+  con@alternatives       # method labels
+  con@provenance$runs    # the member cd_result objects
+  ```
+
 ## Minor improvements and fixes
+
+* The Python back-end availability check is passive and memoised: `cdzoo`
+  never initialises Python (which can trigger interpreter provisioning) just
+  to report availability. Back-ends show as installed once reticulate's
+  interpreter is initialised or configured; `options(cdzoo.python_init = TRUE)`
+  opts into eager initialisation, and `list_methods(refresh = TRUE)` re-probes
+  after a mid-session install.
+* The scenario simulators now draw their noise under the documented scenario
+  seed (previously a lazy-evaluation quirk drew it under the graph-derived
+  stream, coupling the noise to the graph settings). Scenario realisations at
+  a fixed seed change accordingly; the scenario truths are unaffected.
+* `cd_score()` normalises its inputs so any non-zero entry counts as an edge
+  mark -- a weighted adjacency matrix now scores its orientations too -- and
+  `skeleton_f1` is `NA` (previously 0) when the truth has no edges, where
+  recall is undefined.
 
 * `cd_diagnose()` -- and therefore `cd_auto()`'s routing -- is now deterministic
   and leaves the caller's random-number state untouched: on large data sets the
