@@ -1,4 +1,4 @@
-# suffstat.R -- Discovery from a sufficient statistic, and the tessera ingress.
+# suffstat.R -- Discovery from a sufficient statistic, and the counts ingress.
 #
 # cd_discover() and the registered methods all consume a raw observation matrix;
 # the constraint-based back-ends then reduce it to list(C = cor(data), n) before
