@@ -14,8 +14,8 @@ cd_auto(
 )
 }
 \arguments{
-\item{data}{A numeric matrix or data frame of observations by variables, or an
-evaluable-density object (a proxymix \code{gmm} / \code{gmm_fit} / \code{gmm_target}).}
+\item{data}{A numeric matrix or data frame of observations by variables, or
+an evaluable-density object (a proxymix \code{gmm} / \code{gmm_fit} / \code{gmm_target}).}
 
 \item{mode}{\code{"route"} (run the single recommended method) or \code{"consensus"}
 (run the top \code{top_k} installed methods on the route and return their
@@ -31,8 +31,8 @@ is returned, with an empty graph and the status
 \item{threshold}{The partial-correlation edge threshold for the
 density route.}
 
-\item{density_components}{The number of mixture components to fit when routing
-an evaluable target density.}
+\item{density_components}{The number of mixture components to fit when
+routing an evaluable target density.}
 }
 \value{
 A \link{cd_result} whose \code{rationale}, \code{confidence}, and \code{alternatives}
@@ -42,15 +42,24 @@ individual member results are stored in the result's \code{provenance} (as
 \code{agreement} and \code{runs}).
 }
 \description{
-Inspects a data set with \code{\link[=cd_diagnose]{cd_diagnose()}}'s transparent characteristics, routes
-it to a discovery method suited to that regime, runs the best installed method
-on the route, and returns the recovered graph together with the routing
-rationale and a confidence label. Because causal discovery has no run-time
-ground truth, this is a recommender, not a selector: it reports why it chose
-and how sure it is, and -- in \code{"consensus"} mode -- returns a
+Inspects a data set with \code{\link[=cd_diagnose]{cd_diagnose()}}'s transparent characteristics,
+routes it to a discovery method suited to that regime, runs the best
+installed method on the route, and returns the recovered graph together with
+the routing rationale and a confidence label. Because causal discovery has no
+run-time ground truth, this is a recommender, not a selector: it reports why
+it chose and how sure it is, and -- in \code{"consensus"} mode -- returns a
 stability-weighted union of several methods with per-edge agreement.
 }
 \details{
+The route is decided by four data-characteristic thresholds, checked in this
+order and reported in the result's \code{provenance$thresholds}: a curvature
+heuristic above \code{0.05} routes to a kernel conditional-independence test; a
+non-Gaussian margin fraction of \code{0.5} or more routes to the LiNGAM family; a
+correlation condition number above \code{1000} (a latent-structure hint) routes to
+a confounder-robust method; and a residual-variance ratio below \code{2} routes to
+the equal-variance continuous-optimisation methods. Failing all four, the
+benchmark's strongest overall method is used.
+
 When \code{data} is an evaluable density rather than a sample -- a proxymix \code{gmm},
 \code{gmm_fit}, or \code{gmm_target} (requires the suggested \pkg{proxymix} package) --
 the conditional-independence (Markov) structure is read off the mixture in

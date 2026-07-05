@@ -4,21 +4,22 @@
 
 #' Benchmark discovery methods across the scenario grid
 #'
-#' Runs each installed method across the chosen scenarios and seeds, scores every
-#' run against the scenario's known truth with [cd_score()], and returns the
-#' per-run results as a tidy data frame. Each run is isolated, so a back-end that
-#' errors on a cell records a failed status rather than stopping the benchmark.
+#' Runs each installed method across the chosen scenarios and seeds, scores
+#' every run against the scenario's known truth with [cd_score()], and returns
+#' the per-run results as a tidy data frame. Each run is isolated, so a back-end
+#' that errors on a cell records a failed status rather than stopping the
+#' benchmark.
 #'
-#' The default skips methods costlier than `cost_limit` so a first pass is quick;
-#' raise the limit to include the slower kernel and search methods. With no
-#' back-end installed the result has zero rows. A requested method that cannot
-#' run is dropped with a warning naming it and the reason (an unknown id, an
-#' absent back-end, or a cost above the limit) -- never silently.
+#' The default skips methods costlier than `cost_limit` so a first pass is
+#' quick; raise the limit to include the slower kernel and search methods. With
+#' no back-end installed the result has zero rows. A requested method that
+#' cannot run is dropped with a warning naming it and the reason (an unknown id,
+#' an absent back-end, or a cost above the limit) -- never silently.
 #'
 #' @param methods A character vector of method ids to run, or `NULL` (the
 #'   default) for every installed method.
-#' @param scenarios A character vector of scenario names, or `NULL` (the default)
-#'   for all of them.
+#' @param scenarios A character vector of scenario names, or `NULL` (the
+#'   default) for all of them.
 #' @param seeds An integer vector of seeds; each scenario is realised once per
 #'   seed.
 #' @param cost_limit A single string: the costliest method tier to include, one
@@ -44,6 +45,7 @@ cd_benchmark <- function(methods = NULL, scenarios = NULL, seeds = 1:4,
   cost_limit <- match.arg(cost_limit)
   limit <- .COST_RANK[[cost_limit]]
 
+  # Resolve the method and scenario sets -----------------------------------
   if (is.null(scenarios)) {
     scenarios <- cd_scenarios()$name
   }
@@ -84,6 +86,9 @@ cd_benchmark <- function(methods = NULL, scenarios = NULL, seeds = 1:4,
   }
   methods <- setdiff(methods, capped)
 
+  # Run and score the grid -------------------------------------------------
+  # Every (scenario, seed, method) cell runs in isolation, so a back-end that
+  # errors on a cell records a failed status rather than stopping the sweep.
   rows <- vector("list", 0L)
   if (length(methods) == 0L) {
     return(.empty_benchmark())

@@ -209,9 +209,9 @@
 
 #' Generate a benchmark scenario with known ground truth
 #'
-#' Realises one of the built-in structural-causal-model scenarios at a given seed
-#' and returns the data together with the true graph, the independent oracle a
-#' recovered structure is scored against by [cd_score()].
+#' Realises one of the built-in structural-causal-model scenarios at a given
+#' seed and returns the data together with the true graph, the independent
+#' oracle a recovered structure is scored against by [cd_score()].
 #'
 #' @param name A single string: the scenario name (see [cd_scenarios()]).
 #' @param seed A single integer-valued seed for reproducibility; any finite

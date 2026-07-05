@@ -30,6 +30,16 @@
 
 ## Minor improvements and fixes
 
+* `cd_auto()` records the four data-characteristic thresholds that decided the
+  route in the result's `provenance$thresholds`, and documents them, so every
+  recommendation carries the rule it was made under.
+* `cd_discover_suffstat()` runs an order-independent (`"stable"`) skeleton
+  search on the Fisher-Z branch too, so the recovered graph no longer depends
+  on the variable ordering; it rejects a covariance with a non-positive
+  diagonal, and the Gaussian-graphical-model skeleton refuses a matrix too
+  ill-conditioned to invert rather than returning noise.
+* `cd_correlation_from_counts()` rejects negative, missing, or duplicated
+  pairwise counts instead of silently mishandling them.
 * The Python back-end availability check is passive and memoised: `cdzoo`
   never initialises Python (which can trigger interpreter provisioning) just
   to report availability. Back-ends show as installed once reticulate's

@@ -14,8 +14,8 @@
 #' Register a discovery method
 #'
 #' Adds a [cd_method] to the registry so it can be run by [cd_discover()] and
-#' considered by [cd_auto()]. Registering a method with the id of an existing one
-#' replaces it.
+#' considered by [cd_auto()]. Registering a method with the id of an existing
+#' one replaces it.
 #'
 #' @param method A [cd_method] to register.
 #' @returns The method id, invisibly.
@@ -124,7 +124,8 @@ list_methods <- function(as_data_frame = TRUE, refresh = FALSE) {
 
 # ---------------------------------------------------------------------------
 # Python back-end helpers (reticulate discovers its own interpreter; no path is
-# hard-coded, so the user's RETICULATE_PYTHON / virtualenv settings are honoured)
+# hard-coded, so the user's RETICULATE_PYTHON / virtualenv settings are
+# honoured)
 # ---------------------------------------------------------------------------
 
 .py_state <- new.env(parent = emptyenv())
@@ -139,7 +140,8 @@ list_methods <- function(as_data_frame = TRUE, refresh = FALSE) {
     # quieten the back-ends' own logging so a discovery call does not flood the
     # console; done once per session.
     tryCatch(
-      reticulate::py_run_string("import logging; logging.disable(logging.WARNING)"),
+      reticulate::py_run_string(
+        "import logging; logging.disable(logging.WARNING)"),
       error = function(e) NULL
     )
     .py_state$silenced <- TRUE
@@ -148,8 +150,8 @@ list_methods <- function(as_data_frame = TRUE, refresh = FALSE) {
 }
 
 # Locate a top-level module without importing it (so a mere availability check
-# does not pull in a heavy back-end such as torch). importlib.util.find_spec on a
-# top-level name reads the module's spec without executing it.
+# does not pull in a heavy back-end such as torch). importlib.util.find_spec on
+# a top-level name reads the module's spec without executing it.
 #
 # The check is passive and memoised. cdzoo never initialises Python -- which can
 # trigger reticulate's interpreter provisioning, downloads included -- just to
@@ -370,7 +372,9 @@ list_methods <- function(as_data_frame = TRUE, refresh = FALSE) {
     run = function(data) {
       .timed(function() {
         fit <- pcalg::lingam(data)
-        .weighted_to_amat(t(fit$Bpruned), colnames(data), thresh = 1e-6)
+        # Bpruned follows the LiNGAM row=child convention, so read it through
+        # the named LiNGAM converter rather than the generic weighted one.
+        .lingam_B_to_amat(fit$Bpruned, colnames(data))
       })
     }
   ))
@@ -405,7 +409,8 @@ list_methods <- function(as_data_frame = TRUE, refresh = FALSE) {
         family = bn_family[[a]], language = "R",
         output = if (a %in% c("hc", "tabu", "mmhc")) "dag" else "cpdag",
         citation = "Scutari (2010); Tsamardinos, Brown & Aliferis (2006)",
-        cost = "fast", assumptions = "continuous Gaussian (BIC-g / correlation CI)",
+        cost = "fast",
+        assumptions = "continuous Gaussian (BIC-g / correlation CI)",
         available = .has_pkg("bnlearn"),
         run = function(data) {
           .timed(function() {

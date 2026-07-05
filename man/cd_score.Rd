@@ -20,9 +20,9 @@ the truth has no edges (recall is undefined there); an empty estimate
 against a non-empty truth scores 0.
 }
 \description{
-Compares a discovery result -- a \link{cd_result} or a bare adjacency matrix -- with
-the true graph and returns the skeleton, distance, and orientation metrics. The
-truth is typically the \code{truth} element of a \code{\link[=cd_scenario]{cd_scenario()}}.
+Compares a discovery result -- a \link{cd_result} or a bare adjacency matrix --
+with the true graph and returns the skeleton, distance, and orientation
+metrics. The truth is typically the \code{truth} element of a \code{\link[=cd_scenario]{cd_scenario()}}.
 }
 \details{
 Both matrices are normalised before scoring, so any non-zero entry counts as

@@ -14,6 +14,20 @@
 # suits nonlinear mechanisms, and a confounder-robust method is the safer choice
 # when latent structure is hinted at.
 
+# The data-characteristic cutoffs that decide the route. They are the
+# recommender's whole epistemology, so they live in one named place: read here,
+# reported in every recommendation's provenance, and documented in cd_auto().
+.ROUTING_THRESHOLDS <- list(
+  nonlinearity = 0.05,        # quadratic R-squared gain above which a nonlinear
+                              # mechanism is suspected
+  non_gaussian_fraction = 0.5, # share of non-Gaussian margins that routes to
+                              # the LiNGAM family
+  condition_number = 1000,    # correlation condition number above which latent
+                              # structure is hinted
+  equal_variance_ratio = 2    # residual-variance spread below which equal-
+                              # variance identifiability is assumed
+)
+
 #' First available method from a preference order
 #'
 #' @param order A character vector of method ids, best first.
@@ -41,6 +55,9 @@
   cn <- f$condition_number
   nl <- f$nonlinearity
 
+  # Per-regime preference orders -------------------------------------------
+  # Each route lists methods best-first for that data signature; the ordering
+  # is grounded in cd_field_benchmark.
   routes <- list(
     nonlinear = c("pc_kci_cl", "ges_pcalg", "pc_pcalg", "mmhc_bnlearn"),
     non_gaussian = c("icalingam_pcalg", "directlingam_py", "rcd_py",
@@ -58,25 +75,29 @@
          confidence = confidence)
   }
 
-  decided <- if (!is.na(nl) && nl > 0.05) {
+  # Decide the route -------------------------------------------------------
+  # Check the four data-characteristic thresholds in priority order; the first
+  # to fire picks the route, its rationale, and a confidence label.
+  thr <- .ROUTING_THRESHOLDS
+  decided <- if (!is.na(nl) && nl > thr$nonlinearity) {
     pick("nonlinear", sprintf(
       paste0("a curvature heuristic flags a possible nonlinear mechanism ",
              "(quadratic R-squared gain %.2f); a kernel conditional-independence ",
              "test (PC+KCI) is suited to nonlinear dependence"), nl),
     "moderate")
-  } else if (!is.na(ng) && ng >= 0.5) {
+  } else if (!is.na(ng) && ng >= thr$non_gaussian_fraction) {
     pick("non_gaussian", sprintf(
       paste0("%.0f%% of variables depart from normality (mean |excess ",
              "kurtosis| %.2f); the LiNGAM family exploits non-Gaussianity for ",
              "orientation and is fast"), 100 * ng, f$mean_abs_kurtosis),
     if (ng > 0.8) "high" else "moderate")
-  } else if (!is.na(cn) && cn > 1000) {
+  } else if (!is.na(cn) && cn > thr$condition_number) {
     pick("latent", sprintf(
       paste0("a near-singular covariance (condition number %.0f) hints at ",
              "latent structure; a confounder-robust method (FCI / RCD) is the ",
              "safer choice"), cn),
     "low")
-  } else if (!is.na(ev_ratio) && ev_ratio < 2) {
+  } else if (!is.na(ev_ratio) && ev_ratio < thr$equal_variance_ratio) {
     pick("equal_variance", sprintf(
       paste0("approximately Gaussian margins with comparable per-node residual ",
              "variances (ratio %.2f); the continuous-optimisation methods ",
@@ -104,8 +125,9 @@
   if (!is.na(method) && !identical(method, decided$ideal)) {
     ideal_name <- .method_label(decided$ideal)
     rationale <- paste0(
-      rationale, sprintf(". The preferred method (%s) is not installed; using %s",
-                         ideal_name, .method_label(method)))
+      rationale,
+      sprintf(". The preferred method (%s) is not installed; using %s",
+              ideal_name, .method_label(method)))
   }
   list(method = method, ideal = decided$ideal, rationale = rationale,
        confidence = confidence, alternatives = decided$order)
@@ -246,13 +268,22 @@
 
 #' Recommend and run a causal-discovery method for a data set
 #'
-#' Inspects a data set with [cd_diagnose()]'s transparent characteristics, routes
-#' it to a discovery method suited to that regime, runs the best installed method
-#' on the route, and returns the recovered graph together with the routing
-#' rationale and a confidence label. Because causal discovery has no run-time
-#' ground truth, this is a recommender, not a selector: it reports why it chose
-#' and how sure it is, and -- in `"consensus"` mode -- returns a
+#' Inspects a data set with [cd_diagnose()]'s transparent characteristics,
+#' routes it to a discovery method suited to that regime, runs the best
+#' installed method on the route, and returns the recovered graph together with
+#' the routing rationale and a confidence label. Because causal discovery has no
+#' run-time ground truth, this is a recommender, not a selector: it reports why
+#' it chose and how sure it is, and -- in `"consensus"` mode -- returns a
 #' stability-weighted union of several methods with per-edge agreement.
+#'
+#' The route is decided by four data-characteristic thresholds, checked in this
+#' order and reported in the result's `provenance$thresholds`: a curvature
+#' heuristic above `0.05` routes to a kernel conditional-independence test; a
+#' non-Gaussian margin fraction of `0.5` or more routes to the LiNGAM family; a
+#' correlation condition number above `1000` (a latent-structure hint) routes to
+#' a confounder-robust method; and a residual-variance ratio below `2` routes to
+#' the equal-variance continuous-optimisation methods. Failing all four, the
+#' benchmark's strongest overall method is used.
 #'
 #' When `data` is an evaluable density rather than a sample -- a proxymix `gmm`,
 #' `gmm_fit`, or `gmm_target` (requires the suggested \pkg{proxymix} package) --
@@ -260,8 +291,8 @@
 #' closed form, the route for the case where a density can be evaluated but not
 #' sampled.
 #'
-#' @param data A numeric matrix or data frame of observations by variables, or an
-#'   evaluable-density object (a proxymix `gmm` / `gmm_fit` / `gmm_target`).
+#' @param data A numeric matrix or data frame of observations by variables, or
+#'   an evaluable-density object (a proxymix `gmm` / `gmm_fit` / `gmm_target`).
 #' @param mode `"route"` (run the single recommended method) or `"consensus"`
 #'   (run the top `top_k` installed methods on the route and return their
 #'   stability-weighted union).
@@ -272,8 +303,8 @@
 #' @param top_k The number of methods to combine in `"consensus"` mode.
 #' @param threshold The partial-correlation edge threshold for the
 #'   density route.
-#' @param density_components The number of mixture components to fit when routing
-#'   an evaluable target density.
+#' @param density_components The number of mixture components to fit when
+#'   routing an evaluable target density.
 #' @returns A [cd_result] whose `rationale`, `confidence`, and `alternatives`
 #'   (always a list of method labels, in the route's preference order) record
 #'   the recommendation. In `"consensus"` mode the per-edge agreement and the
@@ -291,15 +322,23 @@ cd_auto <- function(data, mode = c("route", "consensus"), report = TRUE,
                     top_k = 3L, threshold = 0.05, density_components = 4L) {
   mode <- match.arg(mode)
 
+  # Density route ----------------------------------------------------------
+  # An evaluable density is not a sample; its Markov structure is read in
+  # closed form, the case the sampling methods cannot serve.
   if (.is_density_input(data)) {
     return(.route_density(data, threshold, density_components))
   }
 
+  # Route -----------------------------------------------------------------
+  # Describe the data, then route on those characteristics. The provenance
+  # records the features, the ideal method, and the deciding thresholds, so
+  # every recommendation carries the evidence it was made on.
   data <- .validate_data(data)
   available <- .available_method_ids()
   f <- .cd_features(data)
   route <- .route_sampled(f, available)
-  prov <- list(features = f, ideal = route$ideal, mode = mode)
+  prov <- list(features = f, ideal = route$ideal, mode = mode,
+               thresholds = .ROUTING_THRESHOLDS)
   alt <- vapply(route$alternatives, .method_label, character(1))
 
   # No back-end installed: return the recommendation, not a graph.
@@ -330,6 +369,9 @@ cd_auto <- function(data, mode = c("route", "consensus"), report = TRUE,
     ))
   }
 
+  # Consensus mode --------------------------------------------------------
+  # Run the top installed methods on the route and combine them; the member
+  # results and the per-edge agreement ride in the provenance.
   if (identical(mode, "consensus")) {
     ids <- utils::head(route$alternatives[route$alternatives %in% available],
                        top_k)

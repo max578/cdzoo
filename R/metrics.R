@@ -4,12 +4,12 @@
 #   amat[i, j] == 1 & amat[j, i] == 0   means   i -> j
 #   amat[i, j] == 1 & amat[j, i] == 1   means   i -- j  (undirected / unoriented)
 #
-# Three metrics tell different, honest parts of the story: skeleton F1 (adjacency
-# recovery, fair to every output type), structural Hamming distance (rewards
-# correct orientation; an unoriented edge that the truth directs is a half-right
-# answer that pays one move), and orientation recall (of the true arrows, the
-# share correctly directed). The metrics are computed in base R so scoring needs
-# no discovery back-end installed.
+# Three metrics tell different, honest parts of the story: skeleton F1
+# (adjacency recovery, fair to every output type), structural Hamming distance
+# (rewards correct orientation; an unoriented edge that the truth directs is a
+# half-right answer that pays one move), and orientation recall (of the true
+# arrows, the share correctly directed). The metrics are computed in base R so
+# scoring needs no discovery back-end installed.
 
 #' Edge state of a variable pair in amat.cpdag convention
 #'
@@ -136,9 +136,9 @@
 
 #' Score a recovered graph against a known truth
 #'
-#' Compares a discovery result -- a [cd_result] or a bare adjacency matrix -- with
-#' the true graph and returns the skeleton, distance, and orientation metrics. The
-#' truth is typically the `truth` element of a [cd_scenario()].
+#' Compares a discovery result -- a [cd_result] or a bare adjacency matrix --
+#' with the true graph and returns the skeleton, distance, and orientation
+#' metrics. The truth is typically the `truth` element of a [cd_scenario()].
 #'
 #' Both matrices are normalised before scoring, so any non-zero entry counts as
 #' an edge mark and the three metrics see the same graph whether the input is

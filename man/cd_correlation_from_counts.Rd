@@ -27,13 +27,19 @@ the pair and variable counts.
 Builds a positive-definite correlation matrix over a set of binary variables
 from their pairwise two-by-two co-occurrence counts -- the aggregated form in
 which co-occurrence data (comorbidity, market-basket, species co-occurrence)
-is usually published. The result feeds straight into \code{\link[=cd_discover_suffstat]{cd_discover_suffstat()}}.
+is usually published. The result feeds straight into
+\code{\link[=cd_discover_suffstat]{cd_discover_suffstat()}}.
 }
 \details{
 A matrix assembled pair by pair is not guaranteed positive semi-definite, so
 it is repaired to the nearest positive-definite correlation matrix by
-eigenvalue clipping when \code{repair = TRUE}; the eigenvalue floor reached and the
-repair distortion are recorded in the result's \code{"repair"} attribute.
+eigenvalue clipping when \code{repair = TRUE}; the eigenvalue floor reached and
+the repair distortion are recorded in the result's \code{"repair"} attribute.
+
+Every unordered variable pair must appear exactly once; a repeated pair is an
+error rather than a silent overwrite. A pair that is absent from \code{pairs} is
+taken to have zero correlation (the off-diagonal entry stays zero before
+repair).
 }
 \examples{
 pairs <- data.frame(

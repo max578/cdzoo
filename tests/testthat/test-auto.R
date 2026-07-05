@@ -46,6 +46,9 @@ test_that("cd_auto reports a recommendation with rationale and confidence", {
   expect_true(S7::S7_inherits(rec, cd_result))
   expect_match(rec@rationale, "normality")
   expect_true(rec@confidence %in% c("high", "moderate", "low"))
+  # the deciding thresholds ride in the provenance for auditability
+  expect_true(is.list(rec@provenance$thresholds))
+  expect_equal(rec@provenance$thresholds$non_gaussian_fraction, 0.5)
 })
 
 test_that("cd_auto reads structure off an evaluable density", {

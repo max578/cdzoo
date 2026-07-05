@@ -15,10 +15,12 @@ A list with logical \code{ok} and a human-readable \code{message}.
 \description{
 Recomputes the payload hash from the object's own load-bearing slots and
 compares it to the stored \code{data_hash}. A mismatch means the payload was
-modified after emission. Matches the reference contract's \code{verify_manifest()}.
+modified after emission. Matches the reference contract's
+\code{verify_manifest()}.
 }
 \examples{
-g <- matrix(c(0, 0, 1, 0), 2, 2, dimnames = list(c("x1", "x2"), c("x1", "x2")))
+g <- matrix(c(0, 0, 1, 0), 2, 2,
+            dimnames = list(c("x1", "x2"), c("x1", "x2")))
 m <- as_orchestra_manifest(cd_result(graph = g, method = "demo"))
 verify_manifest(m)
 }

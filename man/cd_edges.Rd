@@ -20,7 +20,8 @@ Returns the edges of a \link{cd_result} (or a bare adjacency matrix) as a data
 frame, one row per edge, with the orientation made explicit.
 }
 \examples{
-g <- matrix(c(0, 0, 1, 0), 2, 2, dimnames = list(c("x1", "x2"), c("x1", "x2")))
+g <- matrix(c(0, 0, 1, 0), 2, 2,
+            dimnames = list(c("x1", "x2"), c("x1", "x2")))
 cd_edges(cd_result(graph = g, method = "demo"))
 }
 \seealso{

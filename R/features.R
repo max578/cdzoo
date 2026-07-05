@@ -57,7 +57,9 @@
       return(NA)
     }
     p <- tryCatch(stats::shapiro.test(xj)$p.value, error = function(e) NA_real_)
-    isTRUE(p < 0.05)
+    # a test that could not run is unknown, not evidence of normality, so it is
+    # dropped from the fraction (na.rm below) rather than counted as Gaussian.
+    if (is.na(p)) NA else p < 0.05
   }, logical(1))
   kurt <- vapply(seq_len(ncol(data)),
                  function(j) abs(.excess_kurtosis(data[, j])), numeric(1))
@@ -129,9 +131,9 @@
 
 #' A latent-confounder hint from near-singular covariance
 #'
-#' A very ill-conditioned correlation matrix (a near-zero smallest eigenvalue) is
-#' a weak hint of a low-rank structure such as a shared latent factor, where a
-#' confounder-robust method is worth considering.
+#' A very ill-conditioned correlation matrix (a near-zero smallest eigenvalue)
+#' is a weak hint of a low-rank structure such as a shared latent factor, where
+#' a confounder-robust method is worth considering.
 #'
 #' @param data A numeric matrix.
 #' @returns A single number: the condition number of the correlation matrix.
@@ -184,14 +186,14 @@
 
 #' Describe the characteristics of a discovery data set
 #'
-#' Reports the data characteristics the recommender uses to route a problem, as a
-#' one-row data frame. Use it to see what [cd_auto()] sees before it chooses a
+#' Reports the data characteristics the recommender uses to route a problem, as
+#' a one-row data frame. Use it to see what [cd_auto()] sees before it chooses a
 #' method.
 #'
 #' On large data sets the statistics are computed on a deterministic, evenly
 #' spaced subsample of rows (at most 5000 rows for the normality test, 2000 for
-#' the regression heuristics), so the diagnostics are pure: repeated calls on the
-#' same data return the same characteristics, and the caller's random-number
+#' the regression heuristics), so the diagnostics are pure: repeated calls on
+#' the same data return the same characteristics, and the caller's random-number
 #' state is never touched.
 #'
 #' @param data A numeric matrix or data frame of observations (rows) by

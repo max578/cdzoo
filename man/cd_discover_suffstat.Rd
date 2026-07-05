@@ -41,9 +41,9 @@ observation matrix to pass to \code{\link[=cd_discover]{cd_discover()}}.
 \details{
 \code{method = "ggm"} returns the Gaussian-graphical-model skeleton (an undirected
 edge wherever the partial correlation given all other variables clears \code{tau})
-and needs no back-end. \code{method = "pc"} and \code{method = "fci"} run the PC and FCI
-algorithms from \code{pcalg} and add such orientation as the data identify; FCI
-additionally allows latent confounders.
+and needs no back-end. \code{method = "pc"} and \code{method = "fci"} run the PC and
+FCI algorithms from \code{pcalg} and add such orientation as the data identify;
+FCI additionally allows latent confounders.
 
 \code{test = "gauss"} uses the Fisher-Z significance test at level \code{alpha}, as
 \code{\link[=cd_discover]{cd_discover()}} does. \code{test = "magnitude"} instead prunes an edge when the

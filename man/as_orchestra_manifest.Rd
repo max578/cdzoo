@@ -9,28 +9,31 @@ as_orchestra_manifest(x, ...)
 \arguments{
 \item{x}{A \link{cd_result}.}
 
-\item{...}{Further arguments passed to methods. The \link{cd_result} method accepts
-\code{run_id} (an optional character run identifier; a content hash is derived when
-omitted, so two identical results get the same identifier) and \code{seed} (an
-optional integer recorded for reproducibility).}
+\item{...}{Further arguments passed to methods. The \link{cd_result} method
+accepts \code{run_id} (an optional character run identifier; a content hash is
+derived
+when omitted, so two identical results get the same identifier) and \code{seed}
+(an optional integer recorded for reproducibility).}
 }
 \value{
 An \code{orchestra_manifest} S7 object.
 }
 \description{
-The federation's emit / adapt generic. The \link{cd_result} method turns a recovered
-graph into the shared \code{orchestra_manifest} contract:
+The federation's emit / adapt generic. The \link{cd_result} method turns a
+recovered graph into the shared \code{orchestra_manifest} contract:
 \code{inferential_target = "structure"}, the recovered edges carried as a tidy
 \code{params} edge list, and the provenance -- which method ran, the routing
-rationale, the routing confidence, and whether the result is a single method or
-a consensus -- in the typed \code{summary} and \code{metadata}. The full adjacency matrix
-(and, for a consensus, the per-edge agreement) rides in \code{metadata} for a
-consumer that wants the matrix rather than the edge list. When no graph was
-recovered (an absent back-end), the manifest abstains and says so. The payload
-is integrity-hashed so a consumer can verify it with \code{\link[=verify_manifest]{verify_manifest()}}.
+rationale, the routing confidence, and whether the result is a single method
+or a consensus -- in the typed \code{summary} and \code{metadata}. The full adjacency
+matrix (and, for a consensus, the per-edge agreement) rides in \code{metadata} for
+a consumer that wants the matrix rather than the edge list. When no graph was
+recovered (an absent back-end), the manifest abstains and says so. The
+payload is integrity-hashed so a consumer can verify it with
+\code{\link[=verify_manifest]{verify_manifest()}}.
 }
 \examples{
-g <- matrix(c(0, 0, 1, 0), 2, 2, dimnames = list(c("x1", "x2"), c("x1", "x2")))
+g <- matrix(c(0, 0, 1, 0), 2, 2,
+            dimnames = list(c("x1", "x2"), c("x1", "x2")))
 as_orchestra_manifest(cd_result(graph = g, method = "demo",
                                 method_name = "Demo", family = "constraint"))
 }

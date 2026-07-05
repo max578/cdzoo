@@ -18,9 +18,9 @@ in \code{amat.cpdag} convention), \code{dag} (the raw simulator DAG), \code{scen
 \code{family}, \code{p}, and \code{n}.
 }
 \description{
-Realises one of the built-in structural-causal-model scenarios at a given seed
-and returns the data together with the true graph, the independent oracle a
-recovered structure is scored against by \code{\link[=cd_score]{cd_score()}}.
+Realises one of the built-in structural-causal-model scenarios at a given
+seed and returns the data together with the true graph, the independent
+oracle a recovered structure is scored against by \code{\link[=cd_score]{cd_score()}}.
 }
 \examples{
 sim <- cd_scenario("linear_gaussian", seed = 1)

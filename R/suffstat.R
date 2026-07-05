@@ -12,8 +12,8 @@
 # Population-scale note. When n is very large, a significance-based conditional-
 # independence test rejects independence for essentially every pair, so the
 # recovered graph saturates. The magnitude test (test = "magnitude") prunes by
-# effect size -- it drops an edge when the partial correlation falls below tau --
-# which is the right behaviour at population sample sizes.
+# effect size -- it drops an edge when the partial correlation falls below tau
+# -- which is the right behaviour at population sample sizes.
 
 #' Validate and normalise a correlation / covariance matrix
 #'
@@ -38,6 +38,12 @@
   if (max(abs(C - t(C))) > 1e-8) {
     stop(call. = FALSE, "`C` must be symmetric.")
   }
+  # standardise a covariance to a correlation, but only after the diagonal is
+  # known positive: cov2cor divides by sqrt(diag) and a zero or negative
+  # variance would silently produce non-finite entries past the finite check.
+  if (any(diag(C) <= 0)) {
+    stop(call. = FALSE, "`C` must have a strictly positive diagonal.")
+  }
   C <- stats::cov2cor(C)
   if (is.null(dimnames(C))) {
     nm <- paste0("x", seq_len(ncol(C)))
@@ -50,9 +56,9 @@
 #' Magnitude-based conditional-independence test for pcalg
 #'
 #' A drop-in `indepTest` declaring independence when the partial correlation of
-#' `x` and `y` given `S` falls below `suffStat$tau`. Returns `1` (independent) or
-#' `0` (dependent); paired with `alpha = 0.5` this prunes by effect size, not by
-#' significance, which is the correct behaviour at population sample sizes.
+#' `x` and `y` given `S` falls below `suffStat$tau`. Returns `1` (independent)
+#' or `0` (dependent); paired with `alpha = 0.5` this prunes by effect size, not
+#' by significance, which is the correct behaviour at population sample sizes.
 #'
 #' @param x,y Integer node indices.
 #' @param S Integer vector of conditioning node indices.
@@ -65,7 +71,8 @@
   as.numeric(abs(r) < suffStat$tau)
 }
 
-#' Project a symmetric matrix to the nearest positive-definite correlation matrix
+#' Project a symmetric matrix to the nearest positive-definite correlation
+#' matrix
 #'
 #' Clips the eigenvalues at a small positive floor and rescales to a unit
 #' diagonal. A base-R repair, so the ingress carries no extra dependency.
@@ -125,7 +132,17 @@
 #' @noRd
 #' @keywords internal
 .ggm_skeleton <- function(C, tau) {
-  precision <- solve(C)
+  # invert through the Cholesky factor and guard the conditioning: a matrix
+  # repaired to the positive-definite floor can invert into explosive partial
+  # correlations, so refuse rather than return noise.
+  ch <- tryCatch(chol(C), error = function(e) NULL)
+  if (is.null(ch) || kappa(ch)^2 > 1e12) {
+    stop(call. = FALSE, paste0(
+      "`C` is too ill-conditioned to invert for a partial-correlation ",
+      "skeleton; supply a better-conditioned matrix (raise the `repair` floor ",
+      "in cd_correlation_from_counts, or increase `tau`)."))
+  }
+  precision <- chol2inv(ch)
   scale <- sqrt(diag(precision))
   pcor <- -precision / outer(scale, scale)
   amat <- (abs(pcor) >= tau) * 1
@@ -140,9 +157,11 @@
 #' @keywords internal
 .suffstat_constraint <- function(method, C, n, test, alpha, tau, labels) {
   algo <- if (method == "pc") pcalg::pc else pcalg::fci
+  # order-independent skeleton search on both branches, so the recovered graph
+  # does not depend on the variable ordering.
   if (test == "gauss") {
     fit <- algo(list(C = C, n = n), pcalg::gaussCItest, alpha = alpha,
-                labels = labels, verbose = FALSE)
+                labels = labels, skel.method = "stable", verbose = FALSE)
   } else {
     fit <- algo(list(C = C, tau = tau), .cd_pcor_mag_test, alpha = 0.5,
                 labels = labels, skel.method = "stable", verbose = FALSE)
@@ -165,9 +184,9 @@
 #'
 #' `method = "ggm"` returns the Gaussian-graphical-model skeleton (an undirected
 #' edge wherever the partial correlation given all other variables clears `tau`)
-#' and needs no back-end. `method = "pc"` and `method = "fci"` run the PC and FCI
-#' algorithms from `pcalg` and add such orientation as the data identify; FCI
-#' additionally allows latent confounders.
+#' and needs no back-end. `method = "pc"` and `method = "fci"` run the PC and
+#' FCI algorithms from `pcalg` and add such orientation as the data identify;
+#' FCI additionally allows latent confounders.
 #'
 #' `test = "gauss"` uses the Fisher-Z significance test at level `alpha`, as
 #' [cd_discover()] does. `test = "magnitude"` instead prunes an edge when the
@@ -202,7 +221,8 @@ cd_discover_suffstat <- function(C, n,
   if (length(n) != 1L || !is.finite(n) || n < 1) {
     stop(call. = FALSE, "`n` must be a single positive number (sample size).")
   }
-  if (method %in% c("pc", "fci") && !requireNamespace("pcalg", quietly = TRUE)) {
+  needs_pcalg <- method %in% c("pc", "fci")
+  if (needs_pcalg && !requireNamespace("pcalg", quietly = TRUE)) {
     stop(call. = FALSE, sprintf(paste0(
       "method = \"%s\" needs the 'pcalg' package; install it, or use ",
       "method = \"ggm\" (no back-end required)."), method))
@@ -233,12 +253,18 @@ cd_discover_suffstat <- function(C, n,
 #' Builds a positive-definite correlation matrix over a set of binary variables
 #' from their pairwise two-by-two co-occurrence counts -- the aggregated form in
 #' which co-occurrence data (comorbidity, market-basket, species co-occurrence)
-#' is usually published. The result feeds straight into [cd_discover_suffstat()].
+#' is usually published. The result feeds straight into
+#' [cd_discover_suffstat()].
 #'
 #' A matrix assembled pair by pair is not guaranteed positive semi-definite, so
 #' it is repaired to the nearest positive-definite correlation matrix by
-#' eigenvalue clipping when `repair = TRUE`; the eigenvalue floor reached and the
-#' repair distortion are recorded in the result's `"repair"` attribute.
+#' eigenvalue clipping when `repair = TRUE`; the eigenvalue floor reached and
+#' the repair distortion are recorded in the result's `"repair"` attribute.
+#'
+#' Every unordered variable pair must appear exactly once; a repeated pair is an
+#' error rather than a silent overwrite. A pair that is absent from `pairs` is
+#' taken to have zero correlation (the off-diagonal entry stays zero before
+#' repair).
 #'
 #' @param pairs A data frame with one row per variable pair and columns `var_i`,
 #'   `var_j` (the two variable identifiers) and `n11`, `n10`, `n01`, `n00` (the
@@ -266,6 +292,22 @@ cd_correlation_from_counts <- function(pairs,
   if (!all(need %in% names(pairs))) {
     stop(call. = FALSE, "`pairs` must have columns ",
          paste(need, collapse = ", "), ".")
+  }
+  counts <- as.matrix(pairs[, c("n11", "n10", "n01", "n00")])
+  if (any(!is.finite(counts)) || any(counts < 0)) {
+    stop(call. = FALSE,
+         "the count columns (n11, n10, n01, n00) must be non-negative and ",
+         "finite.")
+  }
+  # a variable pair appearing twice would be silently overwritten (last row
+  # wins), quietly discarding data -- refuse instead.
+  key <- paste(pmin(as.character(pairs$var_i), as.character(pairs$var_j)),
+               pmax(as.character(pairs$var_i), as.character(pairs$var_j)),
+               sep = "\r")
+  if (anyDuplicated(key)) {
+    stop(call. = FALSE,
+         "`pairs` has more than one row for a variable pair; each unordered ",
+         "pair must appear once.")
   }
   if (type == "tetra" && !requireNamespace("psych", quietly = TRUE)) {
     stop(call. = FALSE,

@@ -53,8 +53,9 @@ alternatives, in its preference order.}
 An S7 object of class \code{cd_result}.
 }
 \description{
-The object returned by \code{\link[=cd_discover]{cd_discover()}} and \code{\link[=cd_auto]{cd_auto()}}. It holds the recovered
-graph as an adjacency matrix in the \code{pcalg} \code{amat.cpdag} convention, where
+The object returned by \code{\link[=cd_discover]{cd_discover()}} and \code{\link[=cd_auto]{cd_auto()}}. It holds the
+recovered graph as an adjacency matrix in the \code{pcalg} \code{amat.cpdag}
+convention, where
 \code{graph[i, j] == 1} and \code{graph[j, i] == 0} encodes the directed edge
 \eqn{i \rightarrow j}, and \verb{graph[i, j] == graph[j, i] == 1} encodes an
 undirected (unoriented) edge \eqn{i - j}.
@@ -64,7 +65,8 @@ The \code{rationale}, \code{confidence}, and \code{alternatives} properties are 
 \code{\link[=cd_auto]{cd_auto()}} and are empty for a single-method \code{\link[=cd_discover]{cd_discover()}} call.
 }
 \examples{
-g <- matrix(c(0, 0, 1, 0), 2, 2, dimnames = list(c("x1", "x2"), c("x1", "x2")))
+g <- matrix(c(0, 0, 1, 0), 2, 2,
+            dimnames = list(c("x1", "x2"), c("x1", "x2")))
 cd_result(graph = g, method = "pc_pcalg", method_name = "PC (Fisher-Z)")
 }
 \seealso{

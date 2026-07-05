@@ -7,12 +7,13 @@
 An S7 object of class \code{orchestra_manifest}.
 }
 \description{
-A versioned, hashed, provenance-complete S7 result object, property-compatible
-with the federation's reference \code{orchestra_manifest}. A \link{cd_result} is adapted
-into one through \code{\link[=as_orchestra_manifest]{as_orchestra_manifest()}}: the recovered edges ride in \code{params}
-(\code{inferential_target = "structure"}), the method, routing rationale, confidence,
-and consensus flag ride in \code{metadata} and the typed \code{summary}, and the payload
-is integrity-hashed so a tampered graph is detected downstream.
+A versioned, hashed, provenance-complete S7 result object,
+property-compatible with the federation's reference \code{orchestra_manifest}. A
+\link{cd_result} is adapted into one through \code{\link[=as_orchestra_manifest]{as_orchestra_manifest()}}: the
+recovered edges ride in \code{params} (\code{inferential_target = "structure"}), the
+method, routing rationale, confidence, and consensus flag ride in \code{metadata}
+and the typed \code{summary}, and the payload is integrity-hashed so a tampered
+graph is detected downstream.
 }
 \seealso{
 \code{\link[=as_orchestra_manifest]{as_orchestra_manifest()}}, \code{\link[=verify_manifest]{verify_manifest()}}

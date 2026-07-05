@@ -66,3 +66,28 @@ test_that("cd_discover_suffstat validates its inputs", {
     cd_correlation_from_counts(data.frame(var_i = "a", var_j = "b")),
     "must have columns")
 })
+
+test_that("a non-positive covariance diagonal is rejected before cov2cor", {
+  bad <- matrix(c(0, 0.2, 0.2, 1), 2, 2)
+  expect_error(cd_discover_suffstat(bad, 100, method = "ggm"),
+               "strictly positive diagonal")
+})
+
+test_that("cd_correlation_from_counts rejects bad and duplicated counts", {
+  neg <- data.frame(var_i = "a", var_j = "b",
+                    n11 = -1, n10 = 10, n01 = 10, n00 = 90)
+  expect_error(cd_correlation_from_counts(neg), "non-negative")
+  dup <- data.frame(
+    var_i = c("a", "b"), var_j = c("b", "a"),
+    n11 = c(9, 9), n10 = c(1, 1), n01 = c(1, 1), n00 = c(89, 89))
+  expect_error(cd_correlation_from_counts(dup), "must appear once")
+})
+
+test_that("the GGM skeleton refuses a singular matrix", {
+  # two perfectly collinear variables give a singular correlation matrix; the
+  # failure rides in the result status (like any back-end failure), not a throw
+  C <- matrix(1, 2, 2, dimnames = list(c("a", "b"), c("a", "b")))
+  res <- cd_discover_suffstat(C, 1000, method = "ggm")
+  expect_match(res@status, "ill-conditioned")
+  expect_equal(length(res@graph), 0L)
+})

@@ -7,8 +7,9 @@
 
 #' A causal-discovery result
 #'
-#' The object returned by [cd_discover()] and [cd_auto()]. It holds the recovered
-#' graph as an adjacency matrix in the `pcalg` `amat.cpdag` convention, where
+#' The object returned by [cd_discover()] and [cd_auto()]. It holds the
+#' recovered graph as an adjacency matrix in the `pcalg` `amat.cpdag`
+#' convention, where
 #' `graph[i, j] == 1` and `graph[j, i] == 0` encodes the directed edge
 #' \eqn{i \rightarrow j}, and `graph[i, j] == graph[j, i] == 1` encodes an
 #' undirected (unoriented) edge \eqn{i - j}.
@@ -38,7 +39,8 @@
 #' @family results
 #' @export
 #' @examples
-#' g <- matrix(c(0, 0, 1, 0), 2, 2, dimnames = list(c("x1", "x2"), c("x1", "x2")))
+#' g <- matrix(c(0, 0, 1, 0), 2, 2,
+#'             dimnames = list(c("x1", "x2"), c("x1", "x2")))
 #' cd_result(graph = g, method = "pc_pcalg", method_name = "PC (Fisher-Z)")
 cd_result <- S7::new_class(
   name = "cd_result",
@@ -150,7 +152,8 @@ S7::method(print, cd_result) <- function(x, ...) {
 #' @family results
 #' @export
 #' @examples
-#' g <- matrix(c(0, 0, 1, 0), 2, 2, dimnames = list(c("x1", "x2"), c("x1", "x2")))
+#' g <- matrix(c(0, 0, 1, 0), 2, 2,
+#'             dimnames = list(c("x1", "x2"), c("x1", "x2")))
 #' cd_edges(cd_result(graph = g, method = "demo"))
 cd_edges <- function(x) {
   amat <- if (S7::S7_inherits(x, cd_result)) x@graph else x

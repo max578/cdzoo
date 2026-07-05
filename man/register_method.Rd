@@ -14,8 +14,8 @@ The method id, invisibly.
 }
 \description{
 Adds a \link{cd_method} to the registry so it can be run by \code{\link[=cd_discover]{cd_discover()}} and
-considered by \code{\link[=cd_auto]{cd_auto()}}. Registering a method with the id of an existing one
-replaces it.
+considered by \code{\link[=cd_auto]{cd_auto()}}. Registering a method with the id of an existing
+one replaces it.
 }
 \examples{
 m <- cd_method(
