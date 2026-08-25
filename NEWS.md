@@ -1,5 +1,16 @@
 # cdzoo (development version)
 
+## Bug fixes
+
+* `cd_auto()`'s two decline outcomes (`"no back-end installed"` and
+  `"recommendation only (report = FALSE)"`, including the sufficient-
+  statistic route) now stamp the returned `cd_result` with classed decline
+  markers (`"orchestra_refusal"` and `"cdzoo_abstention"`, prepended to the
+  class vector) instead of reporting the decline only as a plain `status`
+  string. What is declined is unchanged; a caller can now also recognise the
+  decline by class, matching the ORCHESTRA_dev fleet's
+  `is_orchestra_decline()` gate convention.
+
 ## Documentation
 
 * The vignette's benchmark figures (`fig-accuracy`, `fig-speed`) now carry
