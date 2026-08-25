@@ -1,3 +1,13 @@
+# cdzoo (development version)
+
+## Bug fixes
+
+* `cd_auto(mode = "route", report = TRUE)` no longer errors when the only
+  available method accepts a sufficient statistic rather than raw data (the
+  base installation, where `ggm_suffstat` is always available): the final
+  route call now reduces the input through `.method_input()` like every other
+  call site (CD-02).
+
 # cdzoo 0.2.0
 
 ## New features

@@ -41,6 +41,27 @@ test_that("an absent preferred method falls back and says so", {
   expect_match(r$rationale, "not installed")
 })
 
+test_that("cd_auto survives a suffstat-only registry in route mode (CD-02)", {
+  # cd_auto(mode = "route", report = TRUE) must use .method_input() to reduce
+  # a raw data matrix to a sufficient statistic when the fallback method only
+  # accepts one -- the base installation, where the only always-available
+  # method is ggm_suffstat.
+  reg <- cdzoo:::.method_registry
+  saved <- as.list(reg)
+  rm(list = ls(reg), envir = reg)
+  on.exit({
+    rm(list = ls(reg), envir = reg)
+    for (nm in names(saved)) assign(nm, saved[[nm]], envir = reg)
+  }, add = TRUE)
+  assign("ggm_suffstat", saved[["ggm_suffstat"]], envir = reg)
+
+  sim <- cd_scenario("linear_laplace", seed = 1)
+  res <- cd_auto(sim$data)
+  expect_true(S7::S7_inherits(res, cd_result))
+  expect_equal(res@method, "ggm_suffstat")
+  expect_equal(res@status, "ok")
+})
+
 test_that("cd_auto reports a recommendation with rationale and confidence", {
   rec <- cd_auto(cd_scenario("linear_laplace", seed = 1)$data, report = FALSE)
   expect_true(S7::S7_inherits(rec, cd_result))

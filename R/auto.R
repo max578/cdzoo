@@ -579,7 +579,7 @@ cd_auto <- function(data, mode = c("route", "consensus"), report = TRUE,
   }
 
   m <- .get_method(route$method)
-  res <- .assemble_result(m@run(data), m, data,
+  res <- .assemble_result(m@run(.method_input(m, data)), m, data,
                           extra = list(features = f))
   res@rationale <- route$rationale
   res@confidence <- route$confidence
