@@ -15,6 +15,14 @@ method, routing rationale, confidence, and consensus flag ride in \code{metadata
 and the typed \code{summary}, and the payload is integrity-hashed so a tampered
 graph is detected downstream.
 }
+\examples{
+g <- matrix(0, 2, 2, dimnames = list(c("x", "y"), c("x", "y")))
+g["x", "y"] <- 1
+m <- as_orchestra_manifest(cd_result(graph = g, method = "demo"))
+m@inferential_target
+m@summary$abstained
+verify_manifest(m)$ok
+}
 \seealso{
 \code{\link[=as_orchestra_manifest]{as_orchestra_manifest()}}, \code{\link[=verify_manifest]{verify_manifest()}}
 }

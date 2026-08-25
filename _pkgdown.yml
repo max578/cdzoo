@@ -22,6 +22,7 @@ reference:
   contents:
   - cd_result
   - cd_edges
+  - plot.cd_result
 - title: Federation manifest
   desc: Emit and verify a versioned, integrity-hashed result manifest.
   contents:

@@ -108,11 +108,11 @@ agg$runtime_s <- round(agg$runtime_s, 3)
 agg
 ```
 
-The continuous-optimisation family leads on these regimes, the LiNGAM family is
+The continuous-optimisation family leads on these regimes; the LiNGAM family is
 the strongest accuracy-per-millisecond entrant, and the kernel and search methods
 trail on the linear scenarios while staying available for the nonlinear ones.
 
-```{r fig-accuracy, eval = has_ggplot2, fig.alt = "Mean structural Hamming distance by method, lower is better, coloured by algorithm family."}
+```{r fig-accuracy, eval = has_ggplot2, fig.alt = "Mean structural Hamming distance by method, lower is better, coloured by algorithm family.", fig.cap = "Mean structural Hamming distance (lower is better) for each registered method, averaged over the nine scenarios and coloured by algorithm family."}
 library(ggplot2)
 ord <- agg[order(-agg$shd), "method_name"]
 plot_df <- agg
@@ -127,7 +127,12 @@ ggplot(plot_df, aes(method_name, shd, fill = family)) +
   theme_minimal(base_size = 11)
 ```
 
-```{r fig-speed, eval = has_ggplot2, fig.alt = "Mean runtime against mean structural Hamming distance, the speed-accuracy trade-off, on a logarithmic runtime axis."}
+The continuous-optimisation and LiNGAM families cluster at the low-error end;
+the kernel- and constraint-based search methods sit at the high-error end on
+these mostly-linear scenarios, which is why the recommender does not route to
+them by default outside a nonlinear-mechanism signature.
+
+```{r fig-speed, eval = has_ggplot2, fig.alt = "Mean runtime against mean structural Hamming distance, the speed-accuracy trade-off, on a logarithmic runtime axis.", fig.cap = "The speed-accuracy trade-off: mean runtime (log scale) against mean structural Hamming distance for each method, coloured by algorithm family."}
 ggplot(agg, aes(runtime_s, shd, colour = family, label = method_name)) +
   geom_point(size = 2.4) +
   scale_x_log10() +
@@ -138,6 +143,12 @@ ggplot(agg, aes(runtime_s, shd, colour = family, label = method_name)) +
        title = "The speed-accuracy trade-off") +
   theme_minimal(base_size = 11)
 ```
+
+The LiNGAM family sits in the cheap, accurate corner (low runtime, low SHD);
+the kernel conditional-independence method runs over two hundred times slower
+than the fastest LiNGAM entrant while landing at a worse mean SHD, which is
+why the route confines it to a nonlinear-mechanism signature rather than
+using it as a general-purpose default.
 
 ## Score your own runs
 

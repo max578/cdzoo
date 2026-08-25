@@ -1,16 +1,17 @@
 # cdzoo
 
-<!-- badges: start -->
-<!-- badges: end -->
-
 `cdzoo` puts a portfolio of causal-discovery algorithms behind one interface. R
 has strong individual packages -- `pcalg`, `bnlearn` -- but no single harness
 that wraps R *and* Python algorithms in one convention, with a scenario grid and
 fair metrics. `cdzoo` provides:
 
-- a **registry** of sixteen discovery methods drawn from `pcalg`, `bnlearn`, and
-  Python back-ends (LiNGAM, causal-learn, gCastle, DAGMA) reached through
-  `reticulate`, each returning its estimate in one adjacency convention;
+<!-- badges: start -->
+<!-- badges: end -->
+
+- a **registry** of nineteen discovery methods drawn from `pcalg`, `bnlearn`,
+  and Python back-ends (LiNGAM, causal-learn, gCastle, DAGMA) reached through
+  `reticulate`, of which sixteen are scored in the shipped field benchmark;
+  each returns its estimate in one adjacency convention;
 - an **evidence-routed recommender**, `cd_auto()`, that inspects a data set,
   routes it to a method suited to that regime, runs it, and reports its rationale
   and a confidence label -- a recommender, not a selector, because causal

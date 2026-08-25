@@ -112,7 +112,7 @@
   pick <- function(route, rationale, confidence) {
     order <- routes[[route]]
     list(order = order, ideal = order[1L], rationale = rationale,
-         confidence = confidence)
+         confidence = confidence, route = route)
   }
 
   # Decide the route -------------------------------------------------------
@@ -164,13 +164,80 @@
   }
   if (!is.na(method) && !identical(method, decided$ideal)) {
     ideal_name <- .method_label(decided$ideal)
+    subst <- .get_method(method)
+    conflict <- !is.null(subst) &&
+      .assumption_conflict(decided$route, subst@assumptions)
+    steps <- if (conflict) 2L else 1L
+    downgraded <- .downgrade_confidence(confidence, steps)
     rationale <- paste0(
       rationale,
       sprintf(". The preferred method (%s) is not installed; using %s",
               ideal_name, .method_label(method)))
+    if (!identical(downgraded, confidence)) {
+      why <- if (conflict) {
+        sprintf(
+          "the substitute's declared assumptions (%s) contradict the data ",
+          subst@assumptions)
+      } else {
+        "it is not the route's preferred method"
+      }
+      rationale <- paste0(
+        rationale,
+        sprintf("; confidence downgraded from %s to %s because %s",
+                confidence, downgraded, why))
+    }
+    confidence <- downgraded
   }
   list(method = method, ideal = decided$ideal, rationale = rationale,
        confidence = confidence, alternatives = decided$order)
+}
+
+#' Step a confidence label down the high/moderate/low ladder
+#'
+#' @param confidence A confidence label (`"high"`, `"moderate"`, or `"low"`).
+#' @param steps A single non-negative integer, the number of steps to
+#'   downgrade.
+#' @returns The downgraded confidence label; floored at `"low"`.
+#' @noRd
+#' @keywords internal
+.downgrade_confidence <- function(confidence, steps) {
+  ladder <- c("high", "moderate", "low")
+  at <- match(confidence, ladder)
+  if (is.na(at)) {
+    return(confidence)
+  }
+  ladder[min(length(ladder), at + steps)]
+}
+
+#' Does a substitute method's declared assumptions contradict the firing
+#' route's data signature?
+#'
+#' The confidence label is only honest when the method actually run shares
+#' the assumption the route fired on. This is a text heuristic over the
+#' [cd_method] `assumptions` field, not a semantic check, so it only flags the
+#' clear cases: a route that fired because the data is non-Gaussian, hints at
+#' latent structure, or looks nonlinear, substituted with a method whose
+#' declared assumptions are Gaussian, causally sufficient, or linear
+#' respectively, with no compensating word.
+#'
+#' @param route The name of the route that fired (`"nonlinear"`,
+#'   `"non_gaussian"`, `"latent"`, `"equal_variance"`, or `"default"`).
+#' @param assumptions The substitute method's `assumptions` string.
+#' @returns A single logical.
+#' @noRd
+#' @keywords internal
+.assumption_conflict <- function(route, assumptions) {
+  if (is.null(assumptions) || !nzchar(assumptions)) {
+    return(FALSE)
+  }
+  a <- tolower(assumptions)
+  switch(
+    route,
+    non_gaussian = grepl("gaussian", a) && !grepl("non-gaussian", a),
+    nonlinear = grepl("\\blinear\\b", a) && !grepl("nonlinear|kernel", a),
+    latent = grepl("causal sufficiency", a) && !grepl("latent", a),
+    FALSE
+  )
 }
 
 #' Display label for a method id
@@ -579,7 +646,7 @@ cd_auto <- function(data, mode = c("route", "consensus"), report = TRUE,
   }
 
   m <- .get_method(route$method)
-  res <- .assemble_result(m@run(data), m, data,
+  res <- .assemble_result(m@run(.method_input(m, data)), m, data,
                           extra = list(features = f))
   res@rationale <- route$rationale
   res@confidence <- route$confidence

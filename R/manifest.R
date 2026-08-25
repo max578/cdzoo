@@ -101,6 +101,13 @@ manifest_summary <- function(headline, abstained = FALSE, metrics = list(),
 #' @usage NULL
 #' @returns An S7 object of class `orchestra_manifest`.
 #' @seealso [as_orchestra_manifest()], [verify_manifest()]
+#' @examples
+#' g <- matrix(0, 2, 2, dimnames = list(c("x", "y"), c("x", "y")))
+#' g["x", "y"] <- 1
+#' m <- as_orchestra_manifest(cd_result(graph = g, method = "demo"))
+#' m@inferential_target
+#' m@summary$abstained
+#' verify_manifest(m)$ok
 #' @export
 orchestra_manifest <- S7::new_class(
   "orchestra_manifest",
