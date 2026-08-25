@@ -387,14 +387,14 @@
   as_arg <- function(id) sub("_suffstat$", "", id)
 
   if (!report || is.na(route$method)) {
-    return(cd_result(
+    return(.stamp_decline(cd_result(
       method = if (is.na(route$ideal)) NA_character_ else route$ideal,
       method_name = .method_label(route$ideal),
       family = "constraint",
       status = if (is.na(route$method)) "no back-end installed" else
         "recommendation only (report = FALSE)",
       rationale = route$rationale, confidence = route$confidence,
-      alternatives = as.list(alt), provenance = prov))
+      alternatives = as.list(alt), provenance = prov)))
   }
 
   if (identical(mode, "consensus")) {
@@ -586,7 +586,7 @@ cd_auto <- function(data, mode = c("route", "consensus"), report = TRUE,
 
   # No back-end installed: return the recommendation, not a graph.
   if (is.na(route$method) || length(available) == 0L) {
-    return(cd_result(
+    return(.stamp_decline(cd_result(
       method = if (is.na(route$ideal)) NA_character_ else route$ideal,
       method_name = .method_label(route$ideal),
       family = NA_character_, status = "no back-end installed",
@@ -597,19 +597,19 @@ cd_auto <- function(data, mode = c("route", "consensus"), report = TRUE,
         "the recommendation."),
       confidence = route$confidence, alternatives = as.list(alt),
       provenance = prov
-    ))
+    )))
   }
 
   if (!report) {
     chosen <- .get_method(route$method)
-    return(cd_result(
+    return(.stamp_decline(cd_result(
       method = route$method, method_name = chosen@name,
       family = chosen@family, language = chosen@language,
       output = chosen@output,
       status = "recommendation only (report = FALSE)",
       rationale = route$rationale, confidence = route$confidence,
       alternatives = as.list(alt), provenance = prov
-    ))
+    )))
   }
 
   # Consensus mode --------------------------------------------------------

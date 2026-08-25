@@ -126,3 +126,49 @@ test_that("alternatives are labels in both modes; consensus runs ride in provena
   expect_gte(length(con@provenance$runs), 1L)
   expect_true(S7::S7_inherits(con@provenance$runs[[1L]], cd_result))
 })
+
+# The two-line orchestra gate predicate, re-implemented locally (per the
+# fleet's ORCHESTRA_dev/integration/refusal_contract.R:99, not imported --
+# a member must never depend on the leader-side gate file) so this test does
+# not depend on ORCHESTRA_dev.
+.is_orchestra_decline <- function(x) {
+  cls <- class(x)
+  any(cls == "orchestra_refusal") || any(grepl("_(refusal|abstention)$", cls))
+}
+
+test_that("cd_auto(report = FALSE) stamps a decline the orchestra gate recognises", {
+  # the exact fleet-gate trigger (ORCHESTRA_dev/integration/test_refusal_contract.R)
+  set.seed(1L)
+  d <- matrix(stats::rnorm(50), ncol = 5,
+             dimnames = list(NULL, paste0("v", 1:5)))
+  rec <- cd_auto(d, report = FALSE)
+  expect_equal(rec@status, "recommendation only (report = FALSE)")
+  expect_true(.is_orchestra_decline(rec))
+  expect_true("orchestra_refusal" %in% class(rec))
+  expect_true(any(grepl("_abstention$", class(rec))))
+})
+
+test_that("an unroutable recommendation ('no back-end installed') is stamped too", {
+  sim <- cd_scenario("linear_laplace", seed = 1)
+  rec <- with_mocked_bindings(
+    cd_auto(sim$data, report = FALSE),
+    .available_method_ids = function() character(0)
+  )
+  expect_equal(rec@status, "no back-end installed")
+  expect_true(.is_orchestra_decline(rec))
+})
+
+test_that("a suffstat recommendation-only result is stamped too", {
+  sim <- cd_scenario("linear_laplace", seed = 1)
+  ss <- cd_suffstat(stats::cor(sim$data), nrow(sim$data))
+  rec <- cd_auto(ss, report = FALSE)
+  expect_equal(rec@status, "recommendation only (report = FALSE)")
+  expect_true(.is_orchestra_decline(rec))
+})
+
+test_that("a run that actually completes is NOT stamped as a decline", {
+  sim <- cd_scenario("linear_laplace", seed = 1)
+  res <- cd_auto(sim$data)
+  expect_equal(res@status, "ok")
+  expect_false(.is_orchestra_decline(res))
+})

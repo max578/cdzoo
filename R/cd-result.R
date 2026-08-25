@@ -76,6 +76,53 @@ cd_result <- S7::new_class(
   }
 )
 
+#' Does a `cd_result` status string denote a decline (no graph produced)?
+#'
+#' Recognises the recommender's two "chose not to run" statuses used by
+#' [cd_auto()]: no installed back-end could serve the route, or the caller
+#' asked for the recommendation only (`report = FALSE`). An `"error: ..."`
+#' status is deliberately excluded -- that records a back-end that was
+#' actually invoked and failed, which is a run outcome, not a decline.
+#'
+#' @param status A single status string.
+#' @returns A single logical.
+#' @noRd
+#' @keywords internal
+.is_decline_status <- function(status) {
+  length(status) == 1L && !is.na(status) &&
+    (identical(status, "no back-end installed") ||
+       startsWith(status, "recommendation only"))
+}
+
+#' Stamp a declining `cd_result` with the orchestra decline classes
+#'
+#' `cd_auto()`'s recommendation-only and no-back-end-installed outcomes are
+#' declines: the recommender is choosing not to produce a graph, rather than
+#' reporting a run that happened. Cross-package callers built against the
+#' ORCHESTRA_dev fleet's `is_orchestra_decline()` gate
+#' (`any(cls == "orchestra_refusal") || any(grepl("_(refusal|abstention)$",
+#' cls))`) expect such an outcome to carry a classed marker, not just a plain
+#' `status` string to parse. A declining result therefore additionally
+#' carries, prepended to its class vector: `"orchestra_refusal"` (the fleet's
+#' explicit shared marker) and `"cdzoo_abstention"` (the member-specific
+#' marker the same gate recognises via its `_abstention$` naming convention).
+#' A `cd_result` whose `status` is `"ok"`, or an execution error from a
+#' back-end that actually ran, is returned unchanged. Prepending to the class
+#' vector leaves S7 dispatch (which keys off the `S7_class` attribute) and
+#' the object's properties untouched.
+#'
+#' @param x A [cd_result].
+#' @returns `x`, with the two decline-marker classes prepended when its
+#'   `status` denotes a decline; unchanged otherwise.
+#' @noRd
+#' @keywords internal
+.stamp_decline <- function(x) {
+  if (.is_decline_status(x@status)) {
+    class(x) <- c("orchestra_refusal", "cdzoo_abstention", class(x))
+  }
+  x
+}
+
 #' Count directed and undirected edges in an adjacency matrix
 #'
 #' @param amat A square adjacency matrix in `amat.cpdag` convention.
