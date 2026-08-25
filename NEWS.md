@@ -1,5 +1,24 @@
 # cdzoo (development version)
 
+## Documentation
+
+* The vignette's benchmark figures (`fig-accuracy`, `fig-speed`) now carry
+  `fig.cap` captions and each is followed by a sentence interpreting what it
+  shows, including a grounded comparison of the kernel conditional-
+  independence method's runtime against the LiNGAM family (CD-07).
+* A comma splice in the vignette's benchmark-summary paragraph is now two
+  independent clauses joined correctly (CD-20).
+* The registry count is corrected from "sixteen" (the method count before
+  0.2.0's sufficient-statistic methods) to "nineteen registered methods,
+  sixteen of them benchmarked" in `README.md` and `CONSTELLATION_MEMBER.md`
+  (CD-10); the README's purpose paragraph now precedes the badges block
+  (CD-19).
+* `plot.cd_result` is now indexed in `_pkgdown.yml`'s reference section
+  (CD-15).
+* `orchestra_manifest`, the one exported S7 class with no worked example, now
+  has one showing construction via `as_orchestra_manifest()` and inspection
+  of the resulting object.
+
 ## Bug fixes
 
 * The confidence label a route reports is now revised when the route's

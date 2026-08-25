@@ -40,11 +40,16 @@
   equal-variance / a latent-structure hint), run the benchmark-suited method, and
   report *why* + a confidence label + the alternatives — and offer a consensus when
   unsure. Honesty is the feature.
-- **My registry (16 methods):** pcalg (PC, GES, ICA-LiNGAM, FCI) and bnlearn (HC,
-  Tabu, GS, IAMB, PC-stable, MMHC) in R; DirectLiNGAM, RCD, PC+KCI, NOTEARS, GOLEM,
-  DAGMA in Python via `reticulate`. Each is a `Suggests`-gated adapter, so the
-  harness, scenarios, metrics, and routing logic run with no back-end installed.
-  The routing preferences are grounded in the shipped `cd_field_benchmark`.
+- **My registry (19 methods, 16 benchmarked):** pcalg (PC, GES, ICA-LiNGAM, FCI)
+  and bnlearn (HC, Tabu, GS, IAMB, PC-stable, MMHC) in R; DirectLiNGAM, RCD,
+  PC+KCI, NOTEARS, GOLEM, DAGMA in Python via `reticulate`; plus three
+  sufficient-statistic methods (`pc_suffstat`, `fci_suffstat`, `ggm_suffstat`,
+  added at 0.2.0) that run on an aggregated correlation matrix rather than
+  row-level data. Each is a `Suggests`-gated adapter, so the harness,
+  scenarios, metrics, and routing logic run with no back-end installed. The
+  routing preferences are grounded in the shipped `cd_field_benchmark`, which
+  scores sixteen of the nineteen (the three sufficient-statistic methods are
+  not yet in the benchmark grid).
 - **My edge:** cdzoo → proxymix (`Suggests`-only, the `gmm_independence_graph`
   evaluable-density route, acyclic); cdzoo → decideR / a downstream consumer via the
   manifest (a recovered structure feeds an analysis or a decision). I take no hard
