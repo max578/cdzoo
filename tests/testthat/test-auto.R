@@ -41,6 +41,29 @@ test_that("an absent preferred method falls back and says so", {
   expect_match(r$rationale, "not installed")
 })
 
+test_that("confidence steps down once on a plain substitution (CD-03)", {
+  # rcd_py's declared assumptions ("linear non-Gaussian...") do not
+  # contradict the firing non_gaussian route, so it is a plain substitution.
+  r <- cdzoo:::.route_sampled(
+    fake_features(non_gaussian_fraction = 1, mean_abs_kurtosis = 1.4),
+    available = "rcd_py")
+  expect_equal(r$method, "rcd_py")
+  expect_equal(r$confidence, "moderate")
+  expect_match(r$rationale, "downgraded from high to moderate")
+})
+
+test_that("confidence steps down twice when the substitute's assumptions contradict the route (CD-03)", {
+  # gs_bnlearn's declared assumptions are "continuous Gaussian", the exact
+  # condition the non_gaussian route just refuted.
+  r <- cdzoo:::.route_sampled(
+    fake_features(non_gaussian_fraction = 1, mean_abs_kurtosis = 1.4),
+    available = "gs_bnlearn")
+  expect_equal(r$method, "gs_bnlearn")
+  expect_equal(r$confidence, "low")
+  expect_match(r$rationale, "downgraded from high to low")
+  expect_match(r$rationale, "contradict")
+})
+
 test_that("cd_auto survives a suffstat-only registry in route mode (CD-02)", {
   # cd_auto(mode = "route", report = TRUE) must use .method_input() to reduce
   # a raw data matrix to a sufficient statistic when the fallback method only

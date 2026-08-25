@@ -2,6 +2,13 @@
 
 ## Bug fixes
 
+* The confidence label a route reports is now revised when the route's
+  preferred method is not installed and a substitute runs instead: one step
+  down the high/moderate/low ladder for a plain substitution, a second step
+  when the substitute's declared `assumptions` contradict the data signature
+  that fired the route (for example a route that fired on non-Gaussian data,
+  substituted with a method that assumes Gaussian margins). The downgrade and
+  its reason are stated in the recommendation's rationale (CD-03).
 * `cd_auto(mode = "route", report = TRUE)` no longer errors when the only
   available method accepts a sufficient statistic rather than raw data (the
   base installation, where `ggm_suffstat` is always available): the final
