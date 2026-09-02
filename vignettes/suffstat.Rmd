@@ -7,26 +7,83 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+<!-- Render time: ~1 s under rmarkdown::render(); macOS arm64, R 4.5.2, one
+     core; pcalg and ggplot2 installed, no Python discovery back-end
+     installed on this build. -->
+
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
-library(cdzoo)
-has_pcalg <- requireNamespace("pcalg", quietly = TRUE)
-set.seed(1)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  dpi = 150
+)
 ```
 
-Most discovery tools need a row-level data matrix. A great deal of real
-association data, though, arrives already aggregated -- a published correlation
-matrix, a privacy-preserving summary, or pairwise co-occurrence counts -- with
-no rows to hand. `cdzoo` treats a sufficient statistic as a first-class input:
-you can discover from it directly, or let the recommender route it.
+```{r library}
+library(cdzoo)
+has_pcalg <- requireNamespace("pcalg", quietly = TRUE)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+set.seed(20260902)
+```
 
-## Counts to a correlation matrix
+## Why
 
-Co-occurrence data is often published as pairwise two-by-two tables: for each
-pair of binary variables, the counts of both present, one present, or neither.
-`cd_correlation_from_counts()` assembles a positive-definite correlation matrix
-from those counts, repairing it to the nearest valid correlation matrix when the
-pairwise assembly is not itself positive-definite:
+An analyst holding a published correlation matrix, or a table of pairwise
+co-occurrence counts, but none of the original rows, asks a narrower version
+of the same trust question: *I never had a data matrix to begin with -- can
+I still get a structure, and can the recommender still tell me how much to
+trust its routing when it never saw a single observation?* `cdzoo` treats a
+sufficient statistic as a first-class input rather than a special case: it
+can be discovered from directly, or handed to the recommender, which
+routes it on the one characteristic a correlation matrix actually carries
+and says plainly which of its usual diagnostics it could not run.
+
+## What
+
+`cd_correlation_from_counts()` assembles a correlation matrix from pairwise
+two-by-two count tables, repairing it to the nearest valid correlation
+matrix when the pairwise assembly is not itself positive-definite.
+`cd_suffstat()` wraps a correlation matrix and its sample size as the
+aggregated input `cd_auto()` recognises. `cd_discover_suffstat()` runs
+constraint-based discovery directly on `(C, n)`: `method = "ggm"` needs no
+back-end and returns the partial-correlation skeleton, `"pc"` and `"fci"`
+add orientation through `pcalg`, and a `test` of `"gauss"` (significance) or
+`"magnitude"` (effect size) decides how an edge is pruned. `cd_auto()` on a
+`cd_suffstat` routes among the sufficient-statistic methods on the one
+signature a correlation matrix carries -- a hint of latent structure -- and
+`cd_explain()` states plainly which of the usual diagnostics an aggregated
+input cannot support.
+
+## Do
+
+```{r graph-layout-helpers, include = FALSE}
+# shared plotting helpers for the recovered-vs-truth figure below: lay the
+# variables out on a circle, then read cd_edges() into segment coordinates.
+.node_xy <- function(nm) {
+  p1 <- length(nm)
+  ang <- seq(0, 2 * pi, length.out = p1 + 1L)[seq_len(p1)]
+  data.frame(node = nm, x = cos(ang), y = sin(ang), stringsAsFactors = FALSE)
+}
+
+.edge_segments <- function(amat, panel) {
+  ed <- cd_edges(amat)
+  xy <- .node_xy(colnames(amat))
+  rownames(xy) <- xy$node
+  ed$x0 <- xy[ed$from, "x"]
+  ed$y0 <- xy[ed$from, "y"]
+  ed$x1 <- xy[ed$to, "x"]
+  ed$y1 <- xy[ed$to, "y"]
+  ed$panel <- panel
+  ed
+}
+```
+
+### From counts to a correlation matrix
+
+Co-occurrence data is often published as pairwise two-by-two tables: for
+each pair of binary variables, the counts of both present, one present, or
+neither.
 
 ```{r counts}
 pairs <- data.frame(
@@ -35,61 +92,279 @@ pairs <- data.frame(
   n11 = c(900, 110, 105),
   n10 = c(100, 890, 895),
   n01 = c(100, 90, 95),
-  n00 = c(8900, 8910, 8905))
-C <- cd_correlation_from_counts(pairs, type = "phi")
-round(C, 2)
-attr(C, "repair")[c("eig_min_raw", "eig_min", "distortion")]
+  n00 = c(8900, 8910, 8905)
+)
+mat_c <- cd_correlation_from_counts(pairs, type = "phi")
+repair <- attr(mat_c, "repair")
 ```
 
-## Discovery from the statistic
-
-`cd_discover_suffstat()` runs constraint-based discovery directly on the matrix
-and its sample size. `method = "ggm"` needs no back-end and returns the
-partial-correlation skeleton; `"pc"` and `"fci"` add orientation through
-`pcalg`:
-
-```{r discover}
-res <- cd_discover_suffstat(C, n = 10000, method = "ggm")
-cd_edges(res)
+```{r counts-kable, echo = FALSE}
+knitr::kable(
+  round(mat_c, 3L),
+  caption = "The phi-coefficient correlation matrix assembled from counts."
+)
+knitr::kable(
+  data.frame(
+    diagnostic = c(
+      "smallest eigenvalue, before repair", "smallest eigenvalue, after",
+      "distortion (Frobenius norm of the change)"
+    ),
+    value = round(unlist(repair[c("eig_min_raw", "eig_min", "distortion")]), 4L)
+  ),
+  row.names = FALSE,
+  caption = "The nearest-positive-definite repair the assembly needed."
+)
 ```
 
-At population sample sizes a significance-based test rejects independence for
-almost every pair, so the graph saturates. The magnitude test prunes by effect
-size instead, which is the right behaviour when `n` is very large:
+The distortion is `r round(repair$distortion, 4L)`: the pairwise assembly
+above was already a valid correlation matrix, so the repair step changed
+nothing. A less internally consistent set of pairwise counts -- three
+two-by-two tables whose implied correlations cannot all hold between three
+variables at once -- would need a real repair, and the distortion would say
+how much the reported matrix had to move to become one.
+
+### Discovery directly from the statistic
+
+```{r discover-suffstat}
+res_ggm <- cd_discover_suffstat(mat_c, n = 10000, method = "ggm")
+edges_ggm <- cd_edges(res_ggm)
+edges_ggm
+```
+
+```{r discover-suffstat-kable, echo = FALSE}
+# pandoc's smart-dash rendering turns the raw "-->"/"---" edge codes into
+# unicode dashes inside an HTML table; relabel for display only.
+edges_ggm_display <- edges_ggm
+edges_ggm_display$type <- ifelse(
+  edges_ggm_display$type == "-->", "directed", "undirected"
+)
+knitr::kable(
+  edges_ggm_display,
+  caption = paste0(
+    "Edges recovered by the partial-correlation skeleton (no back-end ",
+    "needed)."
+  )
+)
+```
+
+`method = "ggm"` needs nothing beyond base R: it thresholds partial
+correlations directly, which is why this call runs regardless of what is
+installed on the machine.
+
+### Two ways to prune, at a sample size large enough to matter
+
+At population-scale sample sizes, a significance-based test rejects
+independence for almost every pair, so the graph saturates; the magnitude
+test prunes by effect size instead, which is the behaviour a very large `n`
+calls for.
 
 ```{r magnitude, eval = has_pcalg}
-sim <- cd_scenario("linear_gaussian", seed = 1)
-big <- stats::cor(sim$data)
-gauss <- cd_discover_suffstat(big, n = 5e6, method = "pc", test = "gauss")
-magnitude <- cd_discover_suffstat(big, n = 5e6, method = "pc", test = "magnitude")
-c(gauss = nrow(cd_edges(gauss)), magnitude = nrow(cd_edges(magnitude)))
+sim <- cd_scenario("linear_gaussian", seed = 1L)
+mat_big <- stats::cor(sim$data)
+gauss <- cd_discover_suffstat(mat_big, n = 5e6, method = "pc", test = "gauss")
+magnitude <- cd_discover_suffstat(
+  mat_big, n = 5e6, method = "pc", test = "magnitude"
+)
+edges_gauss <- cd_edges(gauss)
+edges_magnitude <- cd_edges(magnitude)
+score_magnitude <- cd_score(magnitude, sim$truth)
 ```
 
-## Letting the recommender route it
+```{r magnitude-kable, echo = FALSE, eval = has_pcalg}
+knitr::kable(
+  data.frame(
+    test = c("gauss (significance)", "magnitude (effect size)"),
+    edges = c(nrow(edges_gauss), nrow(edges_magnitude))
+  ),
+  row.names = FALSE,
+  caption = paste0(
+    "Edges recovered from the same correlation matrix at n = 5,000,000, ",
+    "by pruning rule; the underlying scenario's true graph carries ",
+    nrow(cd_edges(sim$truth)), " edges."
+  )
+)
+```
 
-Wrapping the statistic as `cd_suffstat()` lets `cd_auto()` recommend a method.
-A correlation matrix carries only the latent-structure hint, so the
-recommendation states plainly which diagnostics an aggregated input cannot
-support:
+```{r magnitude-skip, eval = !has_pcalg, echo = FALSE, results = "asis"}
+cat("pcalg is not installed on this build, so the significance-versus-",
+    "magnitude comparison above is skipped.\n")
+```
+
+The magnitude test's graph is worth seeing beside the truth it is scored
+against, which the edge table above cannot show on its own -- it lists
+edges, not which ones point the way the truth does:
+
+```{r fig-graph-vs-truth, eval = has_pcalg && has_ggplot2, fig.height = 4.5, fig.cap = "The graph recovered from the correlation matrix alone (PC, magnitude-pruned, n = 5,000,000) beside the scenario's known truth. Both panels share the same variable layout; an arrow marks a directed edge, a plain line an edge whose direction was not resolved."}
+edges_fig <- rbind(
+  .edge_segments(magnitude@graph, "recovered (PC, magnitude test)"),
+  .edge_segments(sim$truth, "known truth")
+)
+edges_fig$kind <- factor(
+  ifelse(edges_fig$type == "-->", "directed", "undirected"),
+  levels = c("directed", "undirected")
+)
+nodes_fig <- rbind(
+  data.frame(
+    .node_xy(colnames(sim$truth)), panel = "recovered (PC, magnitude test)"
+  ),
+  data.frame(.node_xy(colnames(sim$truth)), panel = "known truth")
+)
+
+ggplot2::ggplot() +
+  ggplot2::geom_segment(
+    data = edges_fig[edges_fig$kind == "undirected", ],
+    ggplot2::aes(x = x0, y = y0, xend = x1, yend = y1, colour = kind),
+    linewidth = 0.9
+  ) +
+  ggplot2::geom_segment(
+    data = edges_fig[edges_fig$kind == "directed", ],
+    ggplot2::aes(x = x0, y = y0, xend = x1, yend = y1, colour = kind),
+    linewidth = 0.9,
+    arrow = grid::arrow(length = grid::unit(2.2, "mm"), type = "closed")
+  ) +
+  ggplot2::geom_point(
+    data = nodes_fig, ggplot2::aes(x = x, y = y), size = 9, shape = 21,
+    fill = "white", colour = "grey30", stroke = 1
+  ) +
+  ggplot2::geom_text(
+    data = nodes_fig, ggplot2::aes(x = x, y = y, label = node), size = 3.2
+  ) +
+  ggplot2::scale_colour_viridis_d(
+    name = "edge", option = "D", end = 0.7, drop = FALSE
+  ) +
+  ggplot2::facet_wrap(~panel) +
+  ggplot2::coord_fixed(xlim = c(-1.3, 1.3), ylim = c(-1.3, 1.3)) +
+  ggplot2::theme_minimal(base_size = 11) +
+  ggplot2::theme(
+    axis.text = ggplot2::element_blank(),
+    axis.title = ggplot2::element_blank(),
+    panel.grid = ggplot2::element_blank()
+  ) +
+  ggplot2::labs(title = "Recovered structure against the known truth")
+```
+
+```{r fig-graph-vs-truth-skip, eval = !(has_pcalg && has_ggplot2), echo = FALSE, results = "asis"}
+cat("The recovered-versus-truth figure needs pcalg and ggplot2 both",
+    "installed; it is skipped when either is absent.\n")
+```
+
+```{r score-kable, echo = FALSE, eval = has_pcalg}
+knitr::kable(
+  score_magnitude, digits = 3,
+  caption = "The magnitude-pruned graph, scored against the known truth."
+)
+```
+
+### Letting the recommender route it
+
+Wrapping the statistic as `cd_suffstat()` lets `cd_auto()` recommend a
+method over it:
 
 ```{r auto, eval = has_pcalg}
-ss <- cd_suffstat(big, n = nrow(sim$data))
-rec <- cd_auto(ss)
-cd_explain(rec)
+ss <- cd_suffstat(mat_big, n = nrow(sim$data))
+rec_ss <- cd_auto(ss)
+cd_explain(rec_ss)
 ```
 
-## Passing the result on
+```{r auto-skip, eval = !has_pcalg, echo = FALSE, results = "asis"}
+cat("pcalg is not installed on this build, so the sufficient-statistic",
+    "recommendation above is skipped.\n")
+```
 
-A recovered graph carries its provenance into the federation manifest exactly as
-a data-driven result does, so an aggregated-input discovery is verifiable
-downstream:
+### Passing the result on
+
+A recovered graph carries its provenance into the canonical
+`orchestra_manifest` exactly as a data-driven result does
+(`inferential_target = "structure"`, the token this package's enrolment
+added to the contract), so an aggregated-input discovery is verifiable
+downstream just like any other member's:
 
 ```{r manifest, eval = has_pcalg}
-m <- as_orchestra_manifest(rec, seed = 1L)
-m@inferential_target
-verify_manifest(m)$ok
+manifest_ss <- as_orchestra_manifest(rec_ss, seed = 1L)
+manifest_ss@inferential_target
+verify_manifest(manifest_ss)$ok
 ```
 
-The whole path -- counts to a correlation matrix, discovery from the statistic,
-a routed recommendation, and a verifiable manifest -- runs without ever holding
-a row-level data set.
+```{r manifest-skip, eval = !has_pcalg, echo = FALSE, results = "asis"}
+cat("pcalg is not installed on this build, so the manifest example above",
+    "is skipped.\n")
+```
+
+The whole path -- counts to a correlation matrix, discovery from the
+statistic, a routed recommendation, and a verifiable manifest -- runs
+without ever holding a row-level data set.
+
+## Read
+
+```{r read-text, echo = FALSE, results = "asis"}
+if (has_pcalg) {
+  cat(sprintf(
+    paste0(
+      "Yes: a correlation matrix is enough to get a structure, and the ",
+      "recommender states plainly what it could not check to get there. ",
+      "The magnitude-pruned graph recovers the true skeleton exactly ",
+      "(skeleton F1 = %.0f) but its structural Hamming distance is %d, ",
+      "not zero, because %d of its seven edges point the wrong way or ",
+      "were left unresolved; a correlation matrix alone under-determines ",
+      "orientation the way a full data matrix would not, and the figure ",
+      "shows exactly which edges that cost fell on. The recommender's ",
+      "own rationale above states the same limit in words before any ",
+      "graph is drawn: it names the one signature a correlation matrix ",
+      "carries -- a hint of latent structure from the matrix's condition ",
+      "number -- and says outright that the non-Gaussianity, ",
+      "nonlinearity, and equal-variance tests the data-driven route ",
+      "leans on need row-level data it does not have.\n"
+    ),
+    score_magnitude$skeleton_f1,
+    score_magnitude$shd,
+    score_magnitude$shd
+  ))
+} else {
+  cat(
+    "pcalg is not installed on this build, so the comparison this section",
+    "reads from did not run; the sections marked skipped above state",
+    "what was missing.\n"
+  )
+}
+```
+
+## Limits
+
+The recommender's route over a sufficient statistic is coarser than its
+route over row-level data by construction, not by an oversight this
+vignette works around: a correlation matrix carries no information about
+non-Gaussianity, nonlinear mechanisms, or unequal residual variances, so
+none of those signatures can fire, and every sufficient-statistic
+recommendation reports lower confidence for exactly that reason. The
+repair step in `cd_correlation_from_counts()` finds the nearest valid
+correlation matrix to an internally inconsistent set of pairwise counts; it
+does not, and cannot, recover which of the original counts was wrong, only
+how far the assembled matrix had to move to become coherent. The
+significance-versus-magnitude contrast above is a property of the test, not
+of the sample size on its own: a smaller `n` would not saturate the
+significance test the way `n = 5,000,000` does here, and a data set whose
+true effect sizes are themselves small would still saturate a
+magnitude-pruned graph toward the empty one. None of this vignette's
+examples carries an unmeasured confounder deliberately; a latent-structure
+hint from a near-singular correlation routes to a confounder-robust method,
+but this vignette does not construct a case where that route actually
+fires.
+
+## What to read next
+
+*A benchmark harness and recommender for causal discovery* covers the
+ordinary case this vignette does not: a row-level data matrix, the full set
+of routing signatures, consensus across several methods, and the benchmark
+evidence the routing is grounded in.
+
+## Reproduce
+
+`set.seed(20260902)` guards the top-level session; the simulated scenario
+this vignette's correlation matrix is drawn from is additionally seeded
+explicitly through `cd_scenario()`'s own `seed = 1L` argument, so the same
+call reproduces the same matrix regardless of what ran before it in the
+session.
+
+```{r session-info}
+sessionInfo()
+```

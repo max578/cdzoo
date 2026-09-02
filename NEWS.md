@@ -13,6 +13,16 @@
 
 ## Documentation
 
+* Both vignettes (*A benchmark harness and recommender for causal
+  discovery* and *Discovery from sufficient statistics*) are rewritten to
+  the orchestra vignette quality bar: each opens with the adjustment-set
+  question an analyst who does not trust a single algorithm would ask,
+  follows the fixed Why/What/Do/Read/Limits/What to read next/Reproduce
+  shape, reads the recommender's rationale, confidence and alternatives
+  from a live `cd_auto()` call rather than describing them, and adds a
+  ggplot2 figure each table cannot replace (a consensus edge-agreement
+  heat map; a recovered-graph-versus-known-truth comparison drawn from the
+  adjacency matrix).
 * The vignette's benchmark figures (`fig-accuracy`, `fig-speed`) now carry
   `fig.cap` captions and each is followed by a sentence interpreting what it
   shows, including a grounded comparison of the kernel conditional-
