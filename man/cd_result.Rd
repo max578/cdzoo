@@ -70,7 +70,7 @@ g <- matrix(c(0, 0, 1, 0), 2, 2,
 cd_result(graph = g, method = "pc_pcalg", method_name = "PC (Fisher-Z)")
 }
 \seealso{
-Other results: 
-\code{\link{cd_edges}()}
+Other results:
+\code{\link[=cd_edges]{cd_edges()}}
 }
 \concept{results}

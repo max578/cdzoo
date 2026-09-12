@@ -36,8 +36,8 @@ eagerly. Probe results are cached for the session.
 list_methods()
 }
 \seealso{
-Other registry: 
-\code{\link{cd_method}()},
-\code{\link{register_method}()}
+Other registry:
+\code{\link[=cd_method]{cd_method()}},
+\code{\link[=register_method]{register_method()}}
 }
 \concept{registry}

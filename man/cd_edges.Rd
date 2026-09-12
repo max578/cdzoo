@@ -29,7 +29,7 @@ g <- matrix(c(0, 0, 1, 0), 2, 2,
 cd_edges(cd_result(graph = g, method = "demo"))
 }
 \seealso{
-Other results: 
-\code{\link{cd_result}()}
+Other results:
+\code{\link[=cd_result]{cd_result()}}
 }
 \concept{results}

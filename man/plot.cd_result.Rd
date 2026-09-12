@@ -3,6 +3,10 @@
 \name{plot.cd_result}
 \alias{plot.cd_result}
 \title{Plot a discovery result as a graph}
+\usage{
+## S7 method for class <cdzoo::cd_result>
+plot(x, ...)
+}
 \arguments{
 \item{x}{A \link{cd_result} with a non-empty graph.}
 

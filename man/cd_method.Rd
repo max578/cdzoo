@@ -74,8 +74,8 @@ cd_method(
 )
 }
 \seealso{
-Other registry: 
-\code{\link{list_methods}()},
-\code{\link{register_method}()}
+Other registry:
+\code{\link[=list_methods]{list_methods()}},
+\code{\link[=register_method]{register_method()}}
 }
 \concept{registry}

@@ -27,8 +27,8 @@ register_method(m)
 "noop" \%in\% list_methods()$id
 }
 \seealso{
-Other registry: 
-\code{\link{cd_method}()},
-\code{\link{list_methods}()}
+Other registry:
+\code{\link[=cd_method]{cd_method()}},
+\code{\link[=list_methods]{list_methods()}}
 }
 \concept{registry}
