@@ -196,6 +196,7 @@ S7::method(print, cd_result) <- function(x, ...) {
 #' @param ... Further graphical parameters passed to the node points.
 #' @returns `x`, invisibly.
 #' @name plot.cd_result
+#' @usage NULL
 #' @examples
 #' g <- matrix(0, 3, 3, dimnames = list(paste0("x", 1:3), paste0("x", 1:3)))
 #' g["x1", "x2"] <- 1
