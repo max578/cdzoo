@@ -71,6 +71,17 @@ structural-causal-model scenarios, scored against each scenario's known DAG. It
 is the evidence behind the recommender's routing, and the worked example in the
 package vignette.
 
+## Contributing
+
+Bug reports and suggestions are welcome through the
+[issue tracker](https://github.com/max578/cdzoo/issues).
+
+## Citation
+
+```r
+citation("cdzoo")
+```
+
 ## Licence
 
 MIT. See [LICENSE.md](LICENSE.md).
