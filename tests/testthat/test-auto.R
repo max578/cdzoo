@@ -127,17 +127,15 @@ test_that("alternatives are labels in both modes; consensus runs ride in provena
   expect_true(S7::S7_inherits(con@provenance$runs[[1L]], cd_result))
 })
 
-# The two-line orchestra gate predicate, re-implemented locally (per the
-# fleet's ORCHESTRA_dev/integration/refusal_contract.R:99, not imported --
-# a member must never depend on the leader-side gate file) so this test does
-# not depend on ORCHESTRA_dev.
+# The two-line orchestra gate predicate, re-implemented locally so this test
+# does not depend on the orchestra's shared gate code.
 .is_orchestra_decline <- function(x) {
   cls <- class(x)
   any(cls == "orchestra_refusal") || any(grepl("_(refusal|abstention)$", cls))
 }
 
 test_that("cd_auto(report = FALSE) stamps a decline the orchestra gate recognises", {
-  # the exact fleet-gate trigger (ORCHESTRA_dev/integration/test_refusal_contract.R)
+  # the orchestra gate's own trigger
   set.seed(1L)
   d <- matrix(stats::rnorm(50), ncol = 5,
              dimnames = list(NULL, paste0("v", 1:5)))

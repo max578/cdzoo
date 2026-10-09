@@ -212,7 +212,7 @@
 #' Does a substitute method's declared assumptions contradict the firing
 #' route's data signature?
 #'
-#' The confidence label is only honest when the method actually run shares
+#' The confidence label is only accurate when the method actually run shares
 #' the assumption the route fired on. This is a text heuristic over the
 #' [cd_method] `assumptions` field, not a semantic check, so it only flags the
 #' clear cases: a route that fired because the data is non-Gaussian, hints at

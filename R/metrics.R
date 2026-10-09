@@ -4,7 +4,7 @@
 #   amat[i, j] == 1 & amat[j, i] == 0   means   i -> j
 #   amat[i, j] == 1 & amat[j, i] == 1   means   i -- j  (undirected / unoriented)
 #
-# Three metrics tell different, honest parts of the story: skeleton F1
+# Three metrics tell different parts of the story: skeleton F1
 # (adjacency recovery, fair to every output type), structural Hamming distance
 # (rewards correct orientation; an unoriented edge that the truth directs is a
 # half-right answer that pays one move), and orientation recall (of the true

@@ -5,11 +5,14 @@
 # The data set ships the established multi-back-end field; it is read straight
 # from the run's cached summary so the figures and tables in the vignette are
 # the study's own numbers, not re-typed.
+#
+# The summary file is not part of this repository. Point the environment
+# variable CDZOO_BENCHMARK_SUMMARY at it, then run this script from data-raw/.
 
-src <- file.path(
-  "..", "..", "..", "proxymix_dev", "plan", "extension_candidates",
-  "causal_discovery", "study", "results", "summary.csv"
-)
+src <- Sys.getenv("CDZOO_BENCHMARK_SUMMARY")
+if (!nzchar(src)) {
+  stop("Set CDZOO_BENCHMARK_SUMMARY to the benchmark run's summary.csv.")
+}
 raw <- utils::read.csv(src, stringsAsFactors = FALSE)
 
 # the general harness ships the established field; two workspace research wrappers

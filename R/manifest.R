@@ -11,10 +11,10 @@
 # A recovered graph is, in the contract's terms, an inferred STRUCTURE -- not a
 # parameter vector, a prediction, or a decision -- so the emit target is
 # "structure". The recovered edges ride in `params` as a tidy edge list; the
-# method, family, routing rationale, and -- the carefully-provisioned honesty --
-# the routing confidence and whether the result is a single method or a
-# consensus ride in the typed `summary` and `metadata`, so a downstream consumer
-# always knows how the graph was obtained and how sure the recommender was. The
+# method, family, routing rationale, routing confidence and whether the result
+# is a single method or a consensus ride in the typed `summary` and
+# `metadata`, so a downstream consumer always knows how the graph was obtained
+# and how sure the recommender was. The
 # payload is integrity-hashed so a tampered graph is detected.
 
 # The manifest schema version this member emits. Tracks the reference

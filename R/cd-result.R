@@ -99,7 +99,7 @@ cd_result <- S7::new_class(
 #' `cd_auto()`'s recommendation-only and no-back-end-installed outcomes are
 #' declines: the recommender is choosing not to produce a graph, rather than
 #' reporting a run that happened. Cross-package callers built against the
-#' ORCHESTRA_dev fleet's `is_orchestra_decline()` gate
+#' orchestra packages' `is_orchestra_decline()` gate
 #' (`any(cls == "orchestra_refusal") || any(grepl("_(refusal|abstention)$",
 #' cls))`) expect such an outcome to carry a classed marker, not just a plain
 #' `status` string to parse. A declining result therefore additionally

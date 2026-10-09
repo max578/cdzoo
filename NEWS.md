@@ -1,4 +1,37 @@
-# cdzoo (development version)
+# cdzoo 0.2.0
+
+## New features
+
+* A sufficient statistic is now a first-class discovery input. `cd_method`
+  gains an `accepts` field (`"data"` or `"suffstat"`), and the constraint
+  methods `pc_suffstat`, `fci_suffstat`, and `ggm_suffstat` are registered so
+  they appear in `list_methods()` (which gains an `accepts` column) and are
+  routable by `cd_auto()`. A `"suffstat"` method can also be run on a data
+  matrix through `cd_discover()`, which reduces the data to its sufficient
+  statistic first.
+* `cd_auto()` accepts a sufficient statistic, `cd_suffstat(C, n)`, and routes
+  it among the sufficient-statistic methods. A correlation matrix carries only
+  the latent-structure hint, so the recommendation states plainly that the
+  non-Gaussianity, nonlinearity, and equal-variance tests could not be run --
+  which is what an aggregated input does and does not support. `report`,
+  `mode = "consensus"`, and manifest emission all work on this input.
+* `cd_explain()` prints a readable account of a recommendation -- the method
+  and status, the routing rationale and confidence, the alternatives
+  considered, the thresholds that decided the route, and (for a consensus) the
+  per-edge agreement -- the auditable companion to the compact `print()`.
+* `cd_auto(mode = "consensus")` now draws a family-diverse panel of methods
+  rather than several near-identical members of one family, for a
+  better-grounded agreement signal, and `cd_edges(res, agreement = TRUE)`
+  reports the per-edge agreement of a consensus result.
+* `cd_benchmark(mc.cores = )` runs the scenario grid across cores. Each cell is
+  deterministic given its scenario seed and independent of the others, so the
+  result is identical for any core count.
+* A `plot()` method for `cd_result` draws the recovered graph (variables on a
+  circle, arrows for directed edges) using base graphics only -- no plotting
+  back-end required.
+* A second vignette, *Discovery from sufficient statistics*, works an example
+  from co-occurrence counts through a correlation matrix, discovery, a routed
+  recommendation, and a verifiable manifest.
 
 ## Bug fixes
 
@@ -8,8 +41,20 @@
   markers (`"orchestra_refusal"` and `"cdzoo_abstention"`, prepended to the
   class vector) instead of reporting the decline only as a plain `status`
   string. What is declined is unchanged; a caller can now also recognise the
-  decline by class, matching the ORCHESTRA_dev fleet's
+  decline by class, matching the orchestra packages'
   `is_orchestra_decline()` gate convention.
+* The confidence label a route reports is now revised when the route's
+  preferred method is not installed and a substitute runs instead: one step
+  down the high/moderate/low ladder for a plain substitution, a second step
+  when the substitute's declared `assumptions` contradict the data signature
+  that fired the route (for example a route that fired on non-Gaussian data,
+  substituted with a method that assumes Gaussian margins). The downgrade and
+  its reason are stated in the recommendation's rationale (CD-03).
+* `cd_auto(mode = "route", report = TRUE)` no longer errors when the only
+  available method accepts a sufficient statistic rather than raw data (the
+  base installation, where `ggm_suffstat` is always available): the final
+  route call now reduces the input through `.method_input()` like every other
+  call site (CD-02).
 
 ## Documentation
 
@@ -39,56 +84,6 @@
 * `orchestra_manifest`, the one exported S7 class with no worked example, now
   has one showing construction via `as_orchestra_manifest()` and inspection
   of the resulting object.
-
-## Bug fixes
-
-* The confidence label a route reports is now revised when the route's
-  preferred method is not installed and a substitute runs instead: one step
-  down the high/moderate/low ladder for a plain substitution, a second step
-  when the substitute's declared `assumptions` contradict the data signature
-  that fired the route (for example a route that fired on non-Gaussian data,
-  substituted with a method that assumes Gaussian margins). The downgrade and
-  its reason are stated in the recommendation's rationale (CD-03).
-* `cd_auto(mode = "route", report = TRUE)` no longer errors when the only
-  available method accepts a sufficient statistic rather than raw data (the
-  base installation, where `ggm_suffstat` is always available): the final
-  route call now reduces the input through `.method_input()` like every other
-  call site (CD-02).
-
-# cdzoo 0.2.0
-
-## New features
-
-* A sufficient statistic is now a first-class discovery input. `cd_method`
-  gains an `accepts` field (`"data"` or `"suffstat"`), and the constraint
-  methods `pc_suffstat`, `fci_suffstat`, and `ggm_suffstat` are registered so
-  they appear in `list_methods()` (which gains an `accepts` column) and are
-  routable by `cd_auto()`. A `"suffstat"` method can also be run on a data
-  matrix through `cd_discover()`, which reduces the data to its sufficient
-  statistic first.
-* `cd_auto()` accepts a sufficient statistic, `cd_suffstat(C, n)`, and routes
-  it among the sufficient-statistic methods. A correlation matrix carries only
-  the latent-structure hint, so the recommendation states plainly that the
-  non-Gaussianity, nonlinearity, and equal-variance tests could not be run --
-  honest about what an aggregated input does and does not support. `report`,
-  `mode = "consensus"`, and manifest emission all work on this input.
-* `cd_explain()` prints a readable account of a recommendation -- the method
-  and status, the routing rationale and confidence, the alternatives
-  considered, the thresholds that decided the route, and (for a consensus) the
-  per-edge agreement -- the auditable companion to the compact `print()`.
-* `cd_auto(mode = "consensus")` now draws a family-diverse panel of methods
-  rather than several near-identical members of one family, for a
-  better-grounded agreement signal, and `cd_edges(res, agreement = TRUE)`
-  reports the per-edge agreement of a consensus result.
-* `cd_benchmark(mc.cores = )` runs the scenario grid across cores. Each cell is
-  deterministic given its scenario seed and independent of the others, so the
-  result is identical for any core count.
-* A `plot()` method for `cd_result` draws the recovered graph (variables on a
-  circle, arrows for directed edges) using base graphics only -- no plotting
-  back-end required.
-* A second vignette, *Discovery from sufficient statistics*, works an example
-  from co-occurrence counts through a correlation matrix, discovery, a routed
-  recommendation, and a verifiable manifest.
 
 # cdzoo 0.1.1
 
@@ -157,7 +152,7 @@
   seeds are unchanged.
 * `cd_auto(report = FALSE)` now labels its result
   `"recommendation only (report = FALSE)"` instead of `"ok"`, so a
-  recommendation-only result -- and the manifest it emits -- states honestly
+  recommendation-only result -- and the manifest it emits -- states
   that no graph was recovered.
 * `cd_benchmark()` now warns about requested methods it drops (an unknown id,
   an absent back-end, or a cost above `cost_limit`) instead of dropping them
