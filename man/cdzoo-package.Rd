@@ -6,6 +6,8 @@
 \alias{cdzoo-package}
 \title{cdzoo: A Multi-Backend Benchmark Harness and Recommender for Causal Discovery}
 \description{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
 Provides a single typed interface over a curated portfolio of causal-structure-discovery algorithms drawn from several R and Python back-ends, together with a structural-causal-model scenario grid, fair graph-recovery metrics, and an evidence-routed recommender that inspects a data set and suggests a discovery method suited to its characteristics. Every back-end is optional and loaded lazily only when used, so the harness, the scenario grid, the metrics, and the recommender's routing logic all run with no suggested package installed.
 }
 \seealso{

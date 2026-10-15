@@ -1,12 +1,15 @@
-# cdzoo
+# cdzoo <img src="man/figures/logo.png" align="right" height="139" alt="cdzoo logo" />
+
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/max578/cdzoo/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/max578/cdzoo/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/max578/cdzoo/graph/badge.svg)](https://app.codecov.io/gh/max578/cdzoo)
+[![r-universe](https://max578.r-universe.dev/badges/cdzoo)](https://max578.r-universe.dev/cdzoo)
+<!-- badges: end -->
 
 `cdzoo` puts a portfolio of causal-discovery algorithms behind one interface. R
 has strong individual packages -- `pcalg`, `bnlearn` -- but no single harness
 that wraps R *and* Python algorithms in one convention, with a scenario grid and
 fair metrics. `cdzoo` provides:
-
-<!-- badges: start -->
-<!-- badges: end -->
 
 - a **registry** of nineteen discovery methods drawn from `pcalg`, `bnlearn`,
   and Python back-ends (LiNGAM, causal-learn, gCastle, DAGMA) reached through
@@ -23,6 +26,24 @@ fair metrics. `cdzoo` provides:
 Every back-end is optional. The harness, the scenarios, the metrics, and the
 recommender's routing logic all run on a base installation; a method runs only
 when its back-end is present.
+
+## Related packages
+
+- [pcalg](https://CRAN.R-project.org/package=pcalg) learns causal structure
+  from observational and interventional data with PC, FCI, RFCI and GIES,
+  and estimates causal effects with IDA and adjustment criteria.
+- [bnlearn](https://CRAN.R-project.org/package=bnlearn) learns the structure
+  and parameters of Bayesian networks with constraint-based, score-based and
+  hybrid algorithms, and runs inference on the fitted network.
+- [causalDisco](https://CRAN.R-project.org/package=causalDisco) learns causal
+  structure from temporally ordered observational data, adds background
+  knowledge to the pcalg, bnlearn and Tetrad algorithms, and compares and
+  evaluates the learned graphs.
+
+cdzoo calls pcalg and bnlearn as back-ends rather than replacing them. It
+adds Python methods to the same registry, scores every method on scenarios
+with known graphs, and recommends a method for a given data set with the
+reasons for the choice.
 
 ## Installation
 
