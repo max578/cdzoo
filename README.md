@@ -1,9 +1,11 @@
 # cdzoo <img src="man/figures/logo.png" align="right" height="139" alt="cdzoo logo" />
 
 <!-- badges: start -->
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/max578/cdzoo/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/max578/cdzoo/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/max578/cdzoo/graph/badge.svg)](https://app.codecov.io/gh/max578/cdzoo)
 [![r-universe](https://max578.r-universe.dev/badges/cdzoo)](https://max578.r-universe.dev/cdzoo)
+[![pkgdown](https://github.com/max578/cdzoo/actions/workflows/pkgdown.yaml/badge.svg)](https://max578.github.io/cdzoo/)
 <!-- badges: end -->
 
 `cdzoo` puts a portfolio of causal-discovery algorithms behind one interface. R
