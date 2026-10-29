@@ -1,0 +1,197 @@
+# cdzoo
+
+`cdzoo` puts a portfolio of causal-discovery algorithms behind one
+interface. R has strong individual packages – `pcalg`, `bnlearn` – but
+no single harness that wraps R *and* Python algorithms in one
+convention, with a scenario grid and fair metrics. `cdzoo` provides:
+
+- a **registry** of nineteen discovery methods drawn from `pcalg`,
+  `bnlearn`, and Python back-ends (LiNGAM, causal-learn, gCastle, DAGMA)
+  reached through `reticulate`, of which sixteen are scored in the
+  shipped field benchmark; each returns its estimate in one adjacency
+  convention;
+- an **evidence-routed recommender**,
+  [`cd_auto()`](https://max578.github.io/cdzoo/reference/cd_auto.md),
+  that inspects a data set, routes it to a method suited to that regime,
+  runs it, and reports its rationale and a confidence label – a
+  recommender, not a selector, because causal discovery has no run-time
+  ground truth;
+- a **scenario grid** of structural-causal-model regimes with known
+  DAGs, and **metrics** (skeleton F1, structural Hamming distance,
+  orientation recall) to score recovered graphs.
+
+Every back-end is optional. The harness, the scenarios, the metrics, and
+the recommender’s routing logic all run on a base installation; a method
+runs only when its back-end is present.
+
+## Related packages
+
+- [pcalg](https://CRAN.R-project.org/package=pcalg) learns causal
+  structure from observational and interventional data with PC, FCI,
+  RFCI and GIES, and estimates causal effects with IDA and adjustment
+  criteria.
+- [bnlearn](https://CRAN.R-project.org/package=bnlearn) learns the
+  structure and parameters of Bayesian networks with constraint-based,
+  score-based and hybrid algorithms, and runs inference on the fitted
+  network.
+- [causalDisco](https://CRAN.R-project.org/package=causalDisco) learns
+  causal structure from temporally ordered observational data, adds
+  background knowledge to the pcalg, bnlearn and Tetrad algorithms, and
+  compares and evaluates the learned graphs.
+
+cdzoo calls pcalg and bnlearn as back-ends rather than replacing them.
+It adds Python methods to the same registry, scores every method on
+scenarios with known graphs, and recommends a method for a given data
+set with the reasons for the choice.
+
+## Installation
+
+``` r
+
+# install.packages("pak")
+pak::pak("max578/cdzoo")
+```
+
+The R back-ends are installed with
+`install.packages(c("pcalg", "bnlearn"))`. The Python back-ends are
+reached through `reticulate`; install them into the active Python
+environment (for example `lingam`, `causal-learn`, `gcastle`, `dagma`).
+
+`cdzoo` never starts Python just to report availability: the Python
+back-ends show as installed once reticulate’s interpreter is initialised
+or configured (for example via `RETICULATE_PYTHON`). Set
+`options(cdzoo.python_init = TRUE)` to let the availability check
+initialise Python eagerly, and call `list_methods(refresh = TRUE)` after
+installing a Python module mid-session.
+
+## Usage
+
+``` r
+
+library(cdzoo)
+
+# what is registered, and which back-ends are installed?
+list_methods()
+
+# generate data from a known DAG, then recover it with one method
+sim <- cd_scenario("linear_laplace", seed = 1)
+res <- cd_discover(sim$data, "icalingam_pcalg")
+cd_score(res, sim$truth)
+
+# or let the recommender choose, and explain its choice
+rec <- cd_auto(sim$data)
+rec@method
+rec@rationale
+```
+
+[`cd_auto()`](https://max578.github.io/cdzoo/reference/cd_auto.md) also
+accepts an evaluable density – a `proxymix` mixture or target – rather
+than a sample, reading the conditional-independence structure off the
+mixture in closed form, the case no sampling-based method can serve.
+
+## Benchmark evidence
+
+`cd_field_benchmark` ships a summary of the sixteen methods across nine
+structural-causal-model scenarios, scored against each scenario’s known
+DAG. It is the evidence behind the recommender’s routing, and the worked
+example in the package vignette.
+
+## Contributing
+
+Bug reports and suggestions are welcome through the [issue
+tracker](https://github.com/max578/cdzoo/issues).
+
+## Citation
+
+``` r
+
+citation("cdzoo")
+```
+
+## Licence
+
+MIT. See [LICENSE.md](https://max578.github.io/cdzoo/LICENSE.md).
+
+# Package index
+
+## Discover a graph
+
+Run a method, or let the recommender choose one.
+
+- [`cd_discover()`](https://max578.github.io/cdzoo/reference/cd_discover.md)
+  : Discover a causal graph with one method
+- [`cd_auto()`](https://max578.github.io/cdzoo/reference/cd_auto.md) :
+  Recommend and run a causal-discovery method for a data set
+- [`cd_diagnose()`](https://max578.github.io/cdzoo/reference/cd_diagnose.md)
+  : Describe the characteristics of a discovery data set
+- [`cd_explain()`](https://max578.github.io/cdzoo/reference/cd_explain.md)
+  : Explain a discovery recommendation in words
+
+## Discovery from a sufficient statistic
+
+Run discovery on an aggregated correlation matrix rather than row-level
+data.
+
+- [`cd_discover_suffstat()`](https://max578.github.io/cdzoo/reference/cd_discover_suffstat.md)
+  : Discover a causal graph from a sufficient statistic
+- [`cd_correlation_from_counts()`](https://max578.github.io/cdzoo/reference/cd_correlation_from_counts.md)
+  : Assemble a correlation matrix from pairwise binary counts
+- [`cd_suffstat()`](https://max578.github.io/cdzoo/reference/cd_suffstat.md)
+  : A sufficient statistic as a discovery input
+
+## Results
+
+The discovery-result object and its accessors.
+
+- [`cd_result()`](https://max578.github.io/cdzoo/reference/cd_result.md)
+  : A causal-discovery result
+- [`cd_edges()`](https://max578.github.io/cdzoo/reference/cd_edges.md) :
+  Edge list of a discovery result
+- [`plot.cd_result`](https://max578.github.io/cdzoo/reference/plot.cd_result.md)
+  : Plot a discovery result as a graph
+
+## Federation manifest
+
+Emit and verify a versioned, integrity-hashed result manifest.
+
+- [`as_orchestra_manifest()`](https://max578.github.io/cdzoo/reference/as_orchestra_manifest.md)
+  : Emit a discovery result as a federation manifest
+- [`verify_manifest()`](https://max578.github.io/cdzoo/reference/verify_manifest.md)
+  : Verify a manifest's payload integrity
+- [`orchestra_manifest`](https://max578.github.io/cdzoo/reference/orchestra_manifest.md)
+  : The federation manifest contract (cdzoo-side implementation)
+
+## The method registry
+
+Inspect and extend the portfolio of methods.
+
+- [`list_methods()`](https://max578.github.io/cdzoo/reference/list_methods.md)
+  : The registered discovery methods
+- [`register_method()`](https://max578.github.io/cdzoo/reference/register_method.md)
+  : Register a discovery method
+- [`cd_method()`](https://max578.github.io/cdzoo/reference/cd_method.md)
+  : A causal-discovery method specification
+
+## Scenarios, metrics, and benchmarking
+
+Generate known-truth data and score recovered graphs.
+
+- [`cd_scenario()`](https://max578.github.io/cdzoo/reference/cd_scenario.md)
+  : Generate a benchmark scenario with known ground truth
+- [`cd_scenarios()`](https://max578.github.io/cdzoo/reference/cd_scenarios.md)
+  : The built-in benchmark scenarios
+- [`cd_score()`](https://max578.github.io/cdzoo/reference/cd_score.md) :
+  Score a recovered graph against a known truth
+- [`cd_benchmark()`](https://max578.github.io/cdzoo/reference/cd_benchmark.md)
+  : Benchmark discovery methods across the scenario grid
+- [`cd_field_benchmark`](https://max578.github.io/cdzoo/reference/cd_field_benchmark.md)
+  : Field benchmark of causal-discovery methods across scenarios
+
+# Articles
+
+### All vignettes
+
+- [A benchmark harness and recommender for causal
+  discovery](https://max578.github.io/cdzoo/articles/cdzoo.md):
+- [Discovery from sufficient
+  statistics](https://max578.github.io/cdzoo/articles/suffstat.md):

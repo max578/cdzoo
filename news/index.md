@@ -1,0 +1,292 @@
+# Changelog
+
+## cdzoo (development version)
+
+- The package has a logo.
+- README carries status badges and lists related packages.
+- CI runs lintr (report-only) and test coverage.
+
+## cdzoo 0.2.0
+
+### New features
+
+- A sufficient statistic is now a first-class discovery input.
+  `cd_method` gains an `accepts` field (`"data"` or `"suffstat"`), and
+  the constraint methods `pc_suffstat`, `fci_suffstat`, and
+  `ggm_suffstat` are registered so they appear in
+  [`list_methods()`](https://max578.github.io/cdzoo/reference/list_methods.md)
+  (which gains an `accepts` column) and are routable by
+  [`cd_auto()`](https://max578.github.io/cdzoo/reference/cd_auto.md). A
+  `"suffstat"` method can also be run on a data matrix through
+  [`cd_discover()`](https://max578.github.io/cdzoo/reference/cd_discover.md),
+  which reduces the data to its sufficient statistic first.
+- [`cd_auto()`](https://max578.github.io/cdzoo/reference/cd_auto.md)
+  accepts a sufficient statistic, `cd_suffstat(C, n)`, and routes it
+  among the sufficient-statistic methods. A correlation matrix carries
+  only the latent-structure hint, so the recommendation states plainly
+  that the non-Gaussianity, nonlinearity, and equal-variance tests could
+  not be run – which is what an aggregated input does and does not
+  support. `report`, `mode = "consensus"`, and manifest emission all
+  work on this input.
+- [`cd_explain()`](https://max578.github.io/cdzoo/reference/cd_explain.md)
+  prints a readable account of a recommendation – the method and status,
+  the routing rationale and confidence, the alternatives considered, the
+  thresholds that decided the route, and (for a consensus) the per-edge
+  agreement – the auditable companion to the compact
+  [`print()`](https://rdrr.io/r/base/print.html).
+- `cd_auto(mode = "consensus")` now draws a family-diverse panel of
+  methods rather than several near-identical members of one family, for
+  a better-grounded agreement signal, and
+  `cd_edges(res, agreement = TRUE)` reports the per-edge agreement of a
+  consensus result.
+- `cd_benchmark(mc.cores = )` runs the scenario grid across cores. Each
+  cell is deterministic given its scenario seed and independent of the
+  others, so the result is identical for any core count.
+- A [`plot()`](https://rdrr.io/r/graphics/plot.default.html) method for
+  `cd_result` draws the recovered graph (variables on a circle, arrows
+  for directed edges) using base graphics only – no plotting back-end
+  required.
+- A second vignette, *Discovery from sufficient statistics*, works an
+  example from co-occurrence counts through a correlation matrix,
+  discovery, a routed recommendation, and a verifiable manifest.
+
+### Bug fixes
+
+- [`cd_auto()`](https://max578.github.io/cdzoo/reference/cd_auto.md)‘s
+  two decline outcomes (`"no back-end installed"` and
+  `"recommendation only (report = FALSE)"`, including the sufficient-
+  statistic route) now stamp the returned `cd_result` with classed
+  decline markers (`"orchestra_refusal"` and `"cdzoo_abstention"`,
+  prepended to the class vector) instead of reporting the decline only
+  as a plain `status` string. What is declined is unchanged; a caller
+  can now also recognise the decline by class, matching the orchestra
+  packages’ `is_orchestra_decline()` gate convention.
+- The confidence label a route reports is now revised when the route’s
+  preferred method is not installed and a substitute runs instead: one
+  step down the high/moderate/low ladder for a plain substitution, a
+  second step when the substitute’s declared `assumptions` contradict
+  the data signature that fired the route (for example a route that
+  fired on non-Gaussian data, substituted with a method that assumes
+  Gaussian margins). The downgrade and its reason are stated in the
+  recommendation’s rationale (CD-03).
+- `cd_auto(mode = "route", report = TRUE)` no longer errors when the
+  only available method accepts a sufficient statistic rather than raw
+  data (the base installation, where `ggm_suffstat` is always
+  available): the final route call now reduces the input through
+  `.method_input()` like every other call site (CD-02).
+
+### Documentation
+
+- Both vignettes (*A benchmark harness and recommender for causal
+  discovery* and *Discovery from sufficient statistics*) are rewritten
+  to the orchestra vignette quality bar: each opens with the
+  adjustment-set question an analyst who does not trust a single
+  algorithm would ask, follows the fixed Why/What/Do/Read/Limits/What to
+  read next/Reproduce shape, reads the recommender’s rationale,
+  confidence and alternatives from a live
+  [`cd_auto()`](https://max578.github.io/cdzoo/reference/cd_auto.md)
+  call rather than describing them, and adds a ggplot2 figure each table
+  cannot replace (a consensus edge-agreement heat map; a
+  recovered-graph-versus-known-truth comparison drawn from the adjacency
+  matrix).
+- The vignette’s benchmark figures (`fig-accuracy`, `fig-speed`) now
+  carry `fig.cap` captions and each is followed by a sentence
+  interpreting what it shows, including a grounded comparison of the
+  kernel conditional- independence method’s runtime against the LiNGAM
+  family (CD-07).
+- A comma splice in the vignette’s benchmark-summary paragraph is now
+  two independent clauses joined correctly (CD-20).
+- The registry count is corrected from “sixteen” (the method count
+  before 0.2.0’s sufficient-statistic methods) to “nineteen registered
+  methods, sixteen of them benchmarked” in `README.md` and
+  `CONSTELLATION_MEMBER.md` (CD-10); the README’s purpose paragraph now
+  precedes the badges block (CD-19).
+- `plot.cd_result` is now indexed in `_pkgdown.yml`’s reference section
+  (CD-15).
+- `orchestra_manifest`, the one exported S7 class with no worked
+  example, now has one showing construction via
+  [`as_orchestra_manifest()`](https://max578.github.io/cdzoo/reference/as_orchestra_manifest.md)
+  and inspection of the resulting object.
+
+## cdzoo 0.1.1
+
+### Breaking changes
+
+- The federation manifest’s integrity hash is now computed over
+  version-stable bytes (serialisation pinned to format 2, its
+  version-carrying header dropped before hashing), matching the updated
+  reference contract (`MANIFEST_VERSION` `2.0.0-draft`). A manifest
+  emitted under one R version now verifies under any other. Manifests
+  emitted before this change no longer verify and must be re-emitted:
+
+  ``` r
+
+  # before: verify_manifest(old_manifest)$ok could be FALSE on another R version
+  # after:  re-emit from the original result
+  m <- as_orchestra_manifest(result)
+  verify_manifest(m)$ok
+  ```
+
+- `cd_result@alternatives` now always holds method labels, in both
+  `"route"` and `"consensus"` modes; the consensus member results moved
+  to `provenance$runs`:
+
+  ``` r
+
+  # before: con@alternatives held cd_result objects in consensus mode
+  # after:
+  con <- cd_auto(x, mode = "consensus")
+  con@alternatives       # method labels
+  con@provenance$runs    # the member cd_result objects
+  ```
+
+### Minor improvements and fixes
+
+- [`cd_auto()`](https://max578.github.io/cdzoo/reference/cd_auto.md)
+  records the four data-characteristic thresholds that decided the route
+  in the result’s `provenance$thresholds`, and documents them, so every
+  recommendation carries the rule it was made under.
+
+- [`cd_discover_suffstat()`](https://max578.github.io/cdzoo/reference/cd_discover_suffstat.md)
+  runs an order-independent (`"stable"`) skeleton search on the Fisher-Z
+  branch too, so the recovered graph no longer depends on the variable
+  ordering; it rejects a covariance with a non-positive diagonal, and
+  the Gaussian-graphical-model skeleton refuses a matrix too
+  ill-conditioned to invert rather than returning noise.
+
+- [`cd_correlation_from_counts()`](https://max578.github.io/cdzoo/reference/cd_correlation_from_counts.md)
+  rejects negative, missing, or duplicated pairwise counts instead of
+  silently mishandling them.
+
+- The Python back-end availability check is passive and memoised:
+  `cdzoo` never initialises Python (which can trigger interpreter
+  provisioning) just to report availability. Back-ends show as installed
+  once reticulate’s interpreter is initialised or configured;
+  `options(cdzoo.python_init = TRUE)` opts into eager initialisation,
+  and `list_methods(refresh = TRUE)` re-probes after a mid-session
+  install.
+
+- The scenario simulators now draw their noise under the documented
+  scenario seed (previously a lazy-evaluation quirk drew it under the
+  graph-derived stream, coupling the noise to the graph settings).
+  Scenario realisations at a fixed seed change accordingly; the scenario
+  truths are unaffected.
+
+- [`cd_score()`](https://max578.github.io/cdzoo/reference/cd_score.md)
+  normalises its inputs so any non-zero entry counts as an edge mark – a
+  weighted adjacency matrix now scores its orientations too – and
+  `skeleton_f1` is `NA` (previously 0) when the truth has no edges,
+  where recall is undefined.
+
+- [`cd_diagnose()`](https://max578.github.io/cdzoo/reference/cd_diagnose.md)
+  – and therefore
+  [`cd_auto()`](https://max578.github.io/cdzoo/reference/cd_auto.md)’s
+  routing – is now deterministic and leaves the caller’s random-number
+  state untouched: on large data sets the normality and regression
+  heuristics read an evenly spaced, deterministic subsample instead of a
+  random one. Repeated calls on the same data return the same
+  characteristics and the same recommendation.
+
+- [`cd_scenario()`](https://max578.github.io/cdzoo/reference/cd_scenario.md)
+  accepts any finite seed; seeds above about 271,000 previously failed
+  with an integer-overflow error. Realisations at all previously-valid
+  seeds are unchanged.
+
+- `cd_auto(report = FALSE)` now labels its result
+  `"recommendation only (report = FALSE)"` instead of `"ok"`, so a
+  recommendation-only result – and the manifest it emits – states that
+  no graph was recovered.
+
+- [`cd_benchmark()`](https://max578.github.io/cdzoo/reference/cd_benchmark.md)
+  now warns about requested methods it drops (an unknown id, an absent
+  back-end, or a cost above `cost_limit`) instead of dropping them
+  silently.
+
+- The citation file reads the version from the installed package rather
+  than hard-coding it, and the pkgdown reference index gained the
+  sufficient-statistic and federation-manifest functions added in 0.1.0.
+
+## cdzoo 0.1.0
+
+### New features
+
+- [`cd_discover_suffstat()`](https://max578.github.io/cdzoo/reference/cd_discover_suffstat.md)
+  runs constraint-based discovery directly on a sufficient statistic – a
+  correlation or covariance matrix and its sample size – and returns a
+  `cd_result` in the same `amat.cpdag` convention as
+  [`cd_discover()`](https://max578.github.io/cdzoo/reference/cd_discover.md).
+  This is cdzoo’s front door for data that arrives already aggregated (a
+  published correlation matrix, a privacy-preserving summary, or
+  pairwise co-occurrence counts) with no row-level observation matrix to
+  pass to
+  [`cd_discover()`](https://max578.github.io/cdzoo/reference/cd_discover.md).
+  `method = "ggm"` returns the partial-correlation
+  (Gaussian-graphical-model) skeleton and needs no back-end;
+  `method = "pc"` and `method = "fci"` add orientation through `pcalg`,
+  with `"fci"` allowing latent confounders.
+- A magnitude-based conditional-independence test (`test = "magnitude"`)
+  prunes an edge when the partial-correlation magnitude falls below
+  `tau`, the correct behaviour at population sample sizes where a
+  significance test (`test = "gauss"`, the default) would call every
+  pair dependent.
+- [`cd_correlation_from_counts()`](https://max578.github.io/cdzoo/reference/cd_correlation_from_counts.md)
+  assembles a positive-definite correlation matrix from pairwise binary
+  two-by-two counts (the phi coefficient, base R, or the latent-Gaussian
+  tetrachoric correlation via the optional `psych` package), repairing
+  an indefinite matrix to the nearest positive-definite correlation
+  matrix by eigenvalue clipping. Its output feeds straight into
+  [`cd_discover_suffstat()`](https://max578.github.io/cdzoo/reference/cd_discover_suffstat.md),
+  so the whole counts -\> correlation -\> discovery -\>
+  [`as_orchestra_manifest()`](https://max578.github.io/cdzoo/reference/as_orchestra_manifest.md)
+  path composes.
+
+## cdzoo 0.0.0.9000
+
+- Initial development version. cdzoo provides a single typed interface
+  over a portfolio of causal-discovery algorithms drawn from several R
+  and Python back-ends, a structural-causal-model scenario grid with
+  known ground truth, fair graph-recovery metrics, and an
+  evidence-routed recommender.
+
+### Features
+
+- [`cd_discover()`](https://max578.github.io/cdzoo/reference/cd_discover.md)
+  runs one registered method and returns a `cd_result` carrying the
+  recovered graph in a single `amat.cpdag` adjacency convention, with
+  timing and status.
+- [`cd_auto()`](https://max578.github.io/cdzoo/reference/cd_auto.md)
+  inspects a data set’s characteristics with
+  [`cd_diagnose()`](https://max578.github.io/cdzoo/reference/cd_diagnose.md),
+  routes it to a method suited to that regime, runs the best installed
+  method on the route, and reports its rationale and a confidence label.
+  `mode = "consensus"` returns a stability-weighted union of several
+  methods with per-edge agreement. Given an evaluable density rather
+  than a sample – a `proxymix` mixture or target – it reads the
+  conditional-independence structure off the mixture in closed form.
+- [`list_methods()`](https://max578.github.io/cdzoo/reference/list_methods.md)
+  and
+  [`register_method()`](https://max578.github.io/cdzoo/reference/register_method.md)
+  expose and extend the registry of sixteen built-in methods, drawn from
+  `pcalg`, `bnlearn`, and Python back-ends reached through `reticulate`.
+  Each method is gated on its back-end, so the harness, scenarios,
+  metrics, and routing logic run with no suggested package installed.
+- [`cd_scenario()`](https://max578.github.io/cdzoo/reference/cd_scenario.md)
+  and
+  [`cd_scenarios()`](https://max578.github.io/cdzoo/reference/cd_scenarios.md)
+  generate benchmark data from known DAGs, and
+  [`cd_score()`](https://max578.github.io/cdzoo/reference/cd_score.md)
+  and
+  [`cd_benchmark()`](https://max578.github.io/cdzoo/reference/cd_benchmark.md)
+  score recovered graphs with skeleton F1, structural Hamming distance,
+  and orientation recall.
+- `cd_field_benchmark` ships a summary of the sixteen methods across the
+  nine scenarios, the evidence behind the recommender’s routing
+  preferences.
+- [`as_orchestra_manifest()`](https://max578.github.io/cdzoo/reference/as_orchestra_manifest.md)
+  adapts a `cd_result` into a versioned, integrity-hashed
+  `orchestra_manifest` (`inferential_target = "structure"`): the
+  recovered edges ride in `params`, and the method, routing rationale,
+  confidence, and single-method-versus-consensus flag ride in the typed
+  `summary` and `metadata`, so a recovered graph can be passed
+  downstream with its provenance and verified with
+  [`verify_manifest()`](https://max578.github.io/cdzoo/reference/verify_manifest.md).
